@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import requests, io
@@ -64,11 +63,12 @@ def main_rivers():
 
     # combined dataframe for 2022 and 2023
     Inflow_combined_df= pd.concat([final_2022_df, final_2023_df], axis=0)
-    columns_names= ["INDUS", "KABUL", "JEHLUM", "CHENAB"]
+    Inflow_combined_df.reset_index(inplace=True)
+    columns_names= ["Date","INDUS", "KABUL", "JEHLUM", "CHENAB"]
     Inflow_combined_df.columns= columns_names
     
 
-    Inflow_combined_df.to_csv("mainInflowrivers.csv")
+    Inflow_combined_df.to_csv("mainInflowrivers.csv", index=False)
     
     return print("Done")
 
