@@ -5,12 +5,7 @@ import plotly.express as px
 
 st.set_page_config(layout="wide")
 
-
-
-
 st.title("RiverFlow hydrographs of main river in Pakistan")
-
-
 
 col1, col2, col3 = st.columns([1, 1, 1.5])
 
@@ -35,6 +30,34 @@ with st.expander("Acknowledgements"):
 
 
 fig = px.line(riverflow_df, x = "Date", y = selected_station, title = selected_station)
+fig.update_layout(
+     xaxis= dict(),
+     yaxis=dict(),
+    autosize=False,
+    margin=dict(
+        autoexpand=False,
+        l=100,
+        r=20,
+        t=110,
+     
+     )
+
+
+
+
+    # xaxis=dict(
+    #     showline=True,
+    #     showgrid=False,
+    #     showticklabels=True,
+    #     linecolor='rgb(204, 204, 204)',
+    #     linewidth=2,
+    #     ticks='outside',
+    #     tickfont=dict(
+    #         family='Arial',
+    #         size=12,
+    #         color='rgb(82, 82, 82)',
+        )
+
 
 
 
