@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup as bs
 from tqdm import tqdm
 import json
 
-
 def crawl_riverflow(): 
     wapdaUrl = "http://www.wapda.gov.pk/index.php/river-flow-data"
     page = requests.get(wapdaUrl)
@@ -23,7 +22,6 @@ def crawl_riverflow():
             row_data.append(cell.text.strip())
         data.append(row_data)
 
-
     # # print(riverflowList)
     columnsNames = ["Date","LEVEL (FEET) INDUS AT TARBELA","INFLOW INDUS AT TARBELA", "OUTFLOW INDUS AT TARBELA",
                     "INFLOW KABUL AT NOWSHERA", "LEVEL (FEET) JEHLUM AT MANGLA", "INFLOW JEHLUM AT MANGLA",
@@ -35,7 +33,6 @@ def crawl_riverflow():
     for row in data[4:]:
         riverflow_df.loc[len(riverflow_df)] = row
 
-    
     return riverflow_df
 
 def main_rivers():
@@ -74,7 +71,6 @@ def main_rivers():
     Inflow_combined_df.to_csv("mainInflowrivers.csv", index=False)
     
     return print("Done")
-
 
 if __name__ == "__main__":
     print(main_rivers())
