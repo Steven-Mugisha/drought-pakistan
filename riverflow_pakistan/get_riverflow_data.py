@@ -46,7 +46,7 @@ def main_rivers():
     split_index = inflow_df.index.get_loc((inflow_df['Date'] == '1-Jan').idxmax())
                                            
     # dataframe corresponding to the year of 2022
-    rf_2022_df = inflow_df.loc[:split_index].copy()
+    rf_2022_df = inflow_df.loc[split_index + 1:].copy()
     dates_2022= [s.replace('/', '-') if '/' in s else s for s in rf_2022_df.Date]
     new_rf_2022_df= rf_2022_df.iloc[:,1:]
     new_rf_2022_df["Date"]= dates_2022
