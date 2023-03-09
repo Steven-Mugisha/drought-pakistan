@@ -43,8 +43,10 @@ def main_rivers():
     inflow_df = riverflow_df[["Date","INFLOW INDUS AT TARBELA", "INFLOW KABUL AT NOWSHERA",
                                                "INFLOW JEHLUM AT MANGLA", "INFLOW CHENAB AT MARALA"]]
     
+    split_index = inflow_df.index.get_loc((inflow_df['Date'] == '1-Jan').idxmax())
+                                           
     # dataframe corresponding to the year of 2022
-    rf_2022_df= inflow_df.iloc[66:,:]
+    rf_2022_df = inflow_df.loc[:split_index].copy()
     dates_2022= [s.replace('/', '-') if '/' in s else s for s in rf_2022_df.Date]
     new_rf_2022_df= rf_2022_df.iloc[:,1:]
     new_rf_2022_df["Date"]= dates_2022
@@ -54,7 +56,7 @@ def main_rivers():
 
 
     # dataframe corresponding to the year of 2023
-    rf_2023_df= inflow_df.iloc[:66,:]
+    rf_2023_df = inflow_df.loc[:split_index].copy()
     dates_2023= [s.replace('/', '-') if '/' in s else s for s in rf_2023_df.Date]
     new_rf_2023_df= rf_2023_df.iloc[:,1:]
     new_rf_2023_df["Date"]= dates_2023
@@ -67,8 +69,8 @@ def main_rivers():
     Inflow_combined_df.reset_index(inplace=True)
     columns_names= ["Date","INDUS", "KABUL", "JEHLUM", "CHENAB"]
     Inflow_combined_df.columns= columns_names
-    
 
+    Inflow_combined_df['Year']= [year.split("-")[0] for year in list(Inflow_combined_df.Date)]
     Inflow_combined_df.to_csv("mainInflowrivers.csv", index=False)
     
     return print("Done")
