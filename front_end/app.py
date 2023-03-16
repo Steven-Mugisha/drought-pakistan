@@ -13,12 +13,11 @@ st.title("RiverFlow hydrographs of main rivers in Pakistan")
     
 #     """
 # )
-
 @st.cache_data
 def get_data():
     riverflow_df = pd.read_csv("/Users/mugisha/Desktop/clone/Drought_Pakistan/mainInflowrivers.csv")
     name_rivers = ['INDUS', 'KABUL', 'JEHLUM', 'CHENAB']
-    years = ["2022","2023"]
+    years = ["All Years","2022","2023"]
     return riverflow_df, name_rivers, years
 
 riverflow_df,name_rivers,years = get_data()
@@ -35,7 +34,7 @@ with col2:
     selected_year = st.selectbox(
         "Select Year",
         years,
-        index=years.index("2022")
+        index=years.index("All Years")
     )
 @st.cache_data
 def get_filtered_data(df,year):
@@ -43,11 +42,15 @@ def get_filtered_data(df,year):
     filtered_df = df[df["Year"] == year]
     return filtered_df
 
-df_ToPlot = get_filtered_data(riverflow_df, selected_year)
+if selected_year != "All Years":
+    df_ToPlot = get_filtered_data(riverflow_df, selected_year)
+else:
+    df_ToPlot = riverflow_df
 
 try:
-    fig = px.area(df_ToPlot, x="Date", y=selected_station, title=selected_station, color="Year",
-                  color_discrete_sequence=['darkorange'])
+    # fig = px.area(df_ToPlot, x="Date", y=selected_station, title=selected_station, color="Year",
+    #               color_discrete_sequence=['darkorange'])
+    fig = px.line(df_ToPlot, x="Date", y=selected_station, title=selected_station, color="Year")
     fig.update_traces(line_width=3)
     fig.update_layout(
         width=1000,

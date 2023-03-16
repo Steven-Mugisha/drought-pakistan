@@ -1,4 +1,8 @@
 
+"""
+    Author - Steven Mugisha Mizero
+"""
+
 import pandas as pd
 import numpy as np
 import requests, io
@@ -51,7 +55,6 @@ def main_rivers():
     final_2022_df= rf_2022_reversed.set_index("Date")
     final_2022_df.index = [pd.to_datetime(date_str + '-2022', format='%d-%b-%Y').strftime('%Y-%m-%d') for date_str in final_2022_df.index]
 
-
     # dataframe corresponding to the year of 2023
     rf_2023_df = inflow_df.loc[:split_index].copy()
     dates_2023= [s.replace('/', '-') if '/' in s else s for s in rf_2023_df.Date]
@@ -74,8 +77,3 @@ def main_rivers():
 
 if __name__ == "__main__":
     print(main_rivers())
-
-
-
-
-
