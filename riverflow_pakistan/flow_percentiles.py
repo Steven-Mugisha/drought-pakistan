@@ -6,6 +6,12 @@ from tqdm import tqdm
 import os
 import glob
 import numpy as np
+import math
+import plotly.graph_objs as go
+import plotly.offline as pyo
+import plotly.graph_objs as go
+import plotly.io as pio
+
 
 def fit_model(flow_data: pd.Series, doy, window=None):
     if window is not None:
@@ -25,81 +31,98 @@ def fit_model(flow_data: pd.Series, doy, window=None):
     return flow_data_final
 
 
+def create_percentile_dataframe() -> pd.DataFrame:
+
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages:
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values = dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    Plot_dataframe = pd.DataFrame(columns=[
+                                  "min_value", "0.1_value", "0.25_value", "0.75_value", "0.9_value", "max_value"])
+    for i, lst in enumerate(list_of_values):
+        percentages = [0.1, 0.25, 0.75, 0.9]
+        min_value = min(lst)
+        max_value = max(lst)
+
+        # create a list of values for each percentile and incldue the min and max values which are the min and max values all in a comphrensive list
+        percentile_values = [
+            min_value] + [np.percentile(lst, perc*100) for perc in percentages] + [max_value]
+        # Plot_dataframe.loc[f'list{i+1}'] = percentile_values
+        Plot_dataframe.loc[f'list{i+1}'] = percentile_values
+        Plot_dataframe = Plot_dataframe.reset_index(drop=True)
+
+    return Plot_dataframe
 
 
-# change this and ask Taimoor is this needs to output a dataframe or a csv file
-def create_percentlie_dataframe():
-    path = "/Users/mugisha/Desktop/clone/Drought_Pakistan/flows/"
-    all_files = glob.glob(path + "/*.csv")
+def plot_percentile_flow():
+    # Get the data
+    Plot_dataframe = create_percentile_dataframe()
 
-    for file in all_files:
-        flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
-        name_of_river = file.split("/")[-1].split(".")[0]
-        columns=["1%", "10%","25%","75%","90%","99%"]
-        percentile_dataframe = pd.DataFrame(columns=columns)
-        list_percentiles = []
-        for i in range(1, 366):
-            out_put = fit_model(flow_data, i, window=10)
-            list_percentiles.append(out_put.quantile([0.01, 0.1, 0.25, 0.75, 0.9, 0.99]))
+    # set the index from 1 to 365
+    Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
 
-        for j in list_percentiles:
-            append_list = j.iloc[:,0].tolist()
-            new_row = pd.DataFrame([append_list], columns=columns)
-            percentile_dataframe = percentile_dataframe.append(new_row, ignore_index=True)
-            
-            # save each dataframe to a csv file:
-            out_directory = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/percent_flows/"
-            percentile_dataframe.to_csv(out_directory + name_of_river + ".csv", index=False)
-    
+    # Create the traces
+
+    traces = []
+    fill_colors = ['brown', 'saddlebrown', 'moccasin',
+                   'lawngreen', 'paleturquoise', 'blue']
+
+    for j, col in enumerate(Plot_dataframe.columns):
+        fill = 'tonexty' if j > 0 else 'none'
+        fillcolor = fill_colors[j] if j < len(fill_colors) else None
+        linecolor = 'red' if j == 0 else fillcolor
+        traces.append(go.Scatter(
+            x=Plot_dataframe.index,
+            y=Plot_dataframe.iloc[:, j],
+            name=col,
+            fill=fill,
+            fillcolor=fillcolor,
+            line=dict(color=linecolor)
+        ))
+
+    # Set the layout
+    layout = go.Layout(
+        width=1200,
+        height=600,
+        title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+        xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+        yaxis=dict(
+            title='Daily maximum and minimum discharge, in cubic feet per second',
+            tickmode='array',
+            tickformat='.0f',
+            tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,
+                      100000, 200000, 500000, Plot_dataframe.iloc[:, -1].max()],
+            type='log',
+            tick0=Plot_dataframe.iloc[:, 0].min(),
+            dtick=(Plot_dataframe.iloc[:, -1].max() -
+                   Plot_dataframe.iloc[:, 0].min()) / 10,
+            showgrid=False,
+            titlefont=dict(size=10)
+        )
+    )
+
+    # Create the figure
+    fig = go.Figure(data=traces, layout=layout)
+
+    # Show the figure
+    return pio.show(fig)
+
 
 if __name__ == "__main__":
-    create_percentlie_dataframe()
-
-
-
-# Get the data
-Plot_dataframe = create_percentile_dataframe()
-
-# set the index from 1 to 365
-Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
-
-
-# Create the traces
-traces = []
-fill_types = ['none'] + ['tonexty'] * 5
-
-for j, col in enumerate(Plot_dataframe.columns):
-    fill = fill_types[j]
-    traces.append(go.Scatter(
-        x=Plot_dataframe.index,
-        y=Plot_dataframe.iloc[:, j],
-        name=col,
-        fill=fill,
-    ))
-
-# Set the layout
-layout = go.Layout(
-    width=1200,
-    height=600,
-    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
-    xaxis=dict(title='', showticklabels=False, showgrid=False),
-
-    yaxis=dict(
-        title='Daily maximum and minimum discarge, in cubic feet per second',
-        tickmode='array',
-        tickformat='.0f',
-        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,100000,200000, 500000, Plot_dataframe.iloc[:, -1].max()],
-        type='log',
-        tick0=Plot_dataframe.iloc[:, 0].min(),
-        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
-        showgrid=False,
-        titlefont=dict(size=10)))
-
-   
-
-
-# Create the figure
-fig = go.Figure(data=traces, layout=layout)
-
-# Show the figure
-pio.show(fig)
+    plot_percentile_flow()
