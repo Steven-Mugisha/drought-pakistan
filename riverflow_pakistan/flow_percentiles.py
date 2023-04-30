@@ -55,3 +55,51 @@ def create_percentlie_dataframe():
 if __name__ == "__main__":
     create_percentlie_dataframe()
 
+
+
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickformat='.0f',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,100000,200000, 500000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)

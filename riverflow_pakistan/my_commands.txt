@@ -1,0 +1,3667 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from bs4 import BeautifulSoup as bs
+import pandas as pd
+from datetime import datetime
+import time
+wapdaUrl = "https://www.wapda.gov.pk/river-flow"
+
+# Defining selenium variables:
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+
+
+with webdriver.Chrome(options=chrome_options) as driver:
+    driver.get(wapdaUrl)
+    time.sleep(10)
+
+    page_source_overview = driver.page_source
+
+    # load the page source into beautiful soup:
+    soup = bs(page_source_overview, "html.parser")
+
+    # find the table:
+    table = soup.find("table", class_="MuiTable-root jss66  datatable-body MuiTable-stickyHeader")
+
+    # print the table:
+    print(table)
+wapdaUrl = "https://www.wapda.gov.pk/river-flow"
+
+# Defining selenium variables:
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+
+
+with webdriver.Chrome(options=chrome_options) as driver:
+    driver.get(wapdaUrl)
+    time.sleep(10)
+
+    page_source_overview = driver.page_source
+
+    # load the page source into beautiful soup:
+    soup = bs(page_source_overview, "html.parser")
+
+    # find the table:
+    # table = soup.find("table", class_="MuiTable-root jss66  datatable-body MuiTable-stickyHeader")
+
+    # print the table:
+    # print(table)
+
+    print(soup.prettify())
+wapdaUrl = "https://www.wapda.gov.pk/river-flow"
+
+# Defining selenium variables:
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+
+
+with webdriver.Chrome(options=chrome_options) as driver:
+    driver.get(wapdaUrl)
+    time.sleep(10)
+
+    page_source_overview = driver.page_source
+
+    # load the page source into beautiful soup:
+    soup = bs(page_source_overview, "html.parser")
+
+    table = soup.find("table")
+
+    print(table)
+
+    # find the table:
+    # table = soup.find("table", class_="MuiTable-root jss66  datatable-body MuiTable-stickyHeader")
+
+    # print the table:
+    # print(table)
+wapdaUrl = "https://www.wapda.gov.pk/river-flow"
+
+# Defining selenium variables:
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+
+
+with webdriver.Chrome(options=chrome_options) as driver:
+    driver.get(wapdaUrl)
+    time.sleep(10)
+
+    page_source_overview = driver.page_source
+
+    # load the page source into beautiful soup:
+    soup = bs(page_source_overview, "html.parser")
+
+    table = soup.find("table")
+
+    if table is not None:
+        # Extract data from the table
+        table_data = []
+        for row in table.find_all('tr'):
+            row_values = []
+            for cell in row.find_all('td'):
+                row_values.append(cell.text.strip())
+            if row_values:
+                table_data.append(row_values)
+table_data
+if table_data:
+    columnsNames = ["Date", "LEVEL (FEET) INDUS AT TARBELA", "INFLOW INDUS AT TARBELA", "OUTFLOW INDUS AT TARBELA",
+                    "INFLOW KABUL AT NOWSHERA", "LEVEL (FEET) JEHLUM AT MANGLA", "INFLOW JEHLUM AT MANGLA",
+                    "OUTFLOW JEHLUM AT MANGLA", "INFLOW CHENAB AT MARALA", "CURRENT YEAR", "LAST YEAR", "AVG: Last 10-years"]
+    output_table = pd.DataFrame(columns=columnsNames)
+
+    for row in table_data[:]:
+        output_table.loc[len(output_table)] = row
+output_table
+import pandas as pd
+import numpy as np
+import glob
+import math 
+import plotly.graph_objs as go
+import plotly.offline as pyo
+import plotly.graph_objs as go
+import plotly.io as pio
+def fit_model(flow_data: pd.Series, doy, window=None):
+    if window is not None:
+        doy_min = (doy - window) % 365
+        doy_max = (doy + window) % 365
+        if doy_min > doy_max:
+            day_list = list(range(doy_min, 366)) + list(range(1, doy_max+1))
+        else:
+            day_list = list(range(doy_min, doy_max + 1))
+        flow_data_final = flow_data[flow_data.index.dayofyear.isin(day_list)]
+    else:
+        print(" Only one day of year is considered")
+        # flow_data_final = flow_data[flow_data.index.dayofyear == doy]
+        # params = genextreme.fit(flow_data_final, floc=0) # CHECK THIS
+        # params = list(params)
+    # return params, flow_data_final
+    return flow_data_final
+import pandas as pd
+import numpy as np
+import glob
+import math 
+import plotly.graph_objs as go
+import plotly.offline as pyo
+import plotly.graph_objs as go
+import plotly.io as pio
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc*100}_%_min', f'{perc*100}_%_max'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.99]
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc*100}_%_min', f'{perc*100}_%_max'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.01]
+a = get_max_min_percentiles()[0.01]
+a = get_max_min_percentiles()[0.01]
+a.min()
+a = get_max_min_percentiles()[0.01]
+a.min().values
+# Get the data
+percentile_dict = get_max_min_percentiles()
+dfs = [percentile_dict[p] for p in [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]]
+
+# Set the index from 1 to 365
+dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 11
+for i, df in enumerate(dfs):
+    for j, col in enumerate(df.columns):
+        fill = fill_types[j] if i == 0 else 'tonexty'
+        traces.append(go.Scatter(
+            x=df.index,
+            y=df.iloc[:, j],
+            name=col,
+            fill=fill,
+        ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+               tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+percentile_dict = get_max_min_percentiles()
+dfs = [percentile_dict[p] for p in [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]]
+
+# Set the index from 1 to 365
+dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 11
+for i, df in enumerate(dfs):
+    for j, col in enumerate(df.columns):
+        fill = fill_types[j] if i == 0 else 'tonexty'
+        traces.append(go.Scatter(
+            x=df.index,
+            y=df.iloc[:, j],
+            name=col,
+            fill=fill,
+        ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+    yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+           range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+           tickmode='array', showgrid=False,titlefont=dict(size=10),
+           zeroline=False)
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+percentile_dict = get_max_min_percentiles()
+dfs = [percentile_dict[p] for p in [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]]
+
+# Set the index from 1 to 365
+dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 11
+for i, df in enumerate(dfs):
+    for j, col in enumerate(df.columns):
+        fill = fill_types[j] if i == 0 else 'tonexty'
+        traces.append(go.Scatter(
+            x=df.index,
+            y=df.iloc[:, j],
+            name=col,
+            fill=fill,
+        ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+    yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+           range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+           tickmode='array', showgrid=False,titlefont=dict(size=10),
+           zeroline=False))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+dfs[0].iloc[:, 0].min()
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 11
+for i, df in enumerate(dfs):
+    for j, col in enumerate(df.columns):
+        fill = fill_types[j] if i == 0 else 'tonexty'
+        traces.append(go.Scatter(
+            x=df.index,
+            y=np.log10(df.iloc[:, j]),
+            name=col,
+            fill=fill,
+        ))
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    yaxis=dict(title='Daily maximum and minimum discarge, in log10(cubic feet per second)',
+               tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    yaxis=dict(title='Daily maximum and minimum discarge, in log10(cubic feet per second)',
+               tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+pio.show(fig)
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc*100}_%_min', f'{perc*100}_%_max'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.01]
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc*100}_%_min', f'{perc*100}_%_max'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.1]
+# Get the data
+percentile_dict = get_max_min_percentiles()
+dfs = [percentile_dict[p] for p in [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]]
+
+# Set the index from 1 to 365
+dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 11
+for i, df in enumerate(dfs):
+    for j, col in enumerate(df.columns):
+        fill = fill_types[j] if i == 0 else 'tonexty'
+        traces.append(go.Scatter(
+            x=df.index,
+            y=df.iloc[:, j],
+            name=col,
+            fill=fill,
+        ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+    yaxis=dict(
+    title='Daily maximum and minimum discarge, in cubic feet per second',
+    type='log',
+    tickmode='array',
+    showgrid=False,
+    titlefont=dict(size=10)
+)
+
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+    #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+    #        zeroline=False))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+percentile_dict = get_max_min_percentiles()
+dfs = [percentile_dict[p] for p in [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]]
+
+# Set the index from 1 to 365
+dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 11
+for i, df in enumerate(dfs):
+    for j, col in enumerate(df.columns):
+        fill = fill_types[j] if i == 0 else 'tonexty'
+        traces.append(go.Scatter(
+            x=df.index,
+            y=df.iloc[:, j],
+            name=col,
+            fill=fill,
+        ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+    yaxis=dict(
+    title='Daily maximum and minimum discarge, in cubic feet per second',
+    type='log',
+    tickmode='array',
+    showgrid=False,
+    titlefont=dict(size=10)))
+
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+    #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+    #        zeroline=False))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc*100}_%_min', f'{perc*100}_%_max'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.01]
+import pandas as pd
+import numpy as np
+import glob
+import math 
+import plotly.graph_objs as go
+import plotly.offline as pyo
+import plotly.graph_objs as go
+import plotly.io as pio
+def fit_model(flow_data: pd.Series, doy, window=None):
+    if window is not None:
+        doy_min = (doy - window) % 365
+        doy_max = (doy + window) % 365
+        if doy_min > doy_max:
+            day_list = list(range(doy_min, 366)) + list(range(1, doy_max+1))
+        else:
+            day_list = list(range(doy_min, doy_max + 1))
+        flow_data_final = flow_data[flow_data.index.dayofyear.isin(day_list)]
+    else:
+        print(" Only one day of year is considered")
+        # flow_data_final = flow_data[flow_data.index.dayofyear == doy]
+        # params = genextreme.fit(flow_data_final, floc=0) # CHECK THIS
+        # params = list(params)
+    # return params, flow_data_final
+    return flow_data_final
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+    
+
+    print(out_put_list)
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+    
+
+    print(out_put_list)
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+    
+
+    print(out_put_list)
+
+len(create_percentile_dataframe())
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+    
+
+    print(len(out_put_list))
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+    
+
+    print(out_put_list)
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    print(list_of_values)
+    
+
+
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    print(len(list_of_values))
+    
+
+
+
+create_percentile_dataframe()
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc}_%_min', f'{perc}_%_max'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.01]
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc}_value', f'{perc}_value'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.01]
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    # dfs = {}
+    # percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    # for perc in percentages:
+    #     df = pd.DataFrame(columns=[f'{perc}_value', f'{perc}_value'])
+    #     for i, lst in enumerate(list_of_values):
+    #         lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+    #         upper_bound = np.percentile(lst, perc*100)
+    #         values = [x for x in lst if lower_bound < x <= upper_bound]
+    #         if values:
+    #             df.loc[f'list{i+1}'] = [min(values), max(values)]
+    #     dfs[perc] = df.reset_index(drop=True)
+
+    # return dfs
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        cols = [f'{p}_value' for p in percentages]  # column names
+        df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        dfs[f'list{i+1}'] = df  # add DataFrame to dictionary
+
+    return dfs
+
+
+get_max_min_percentiles()[0.0]
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    # dfs = {}
+    # percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    # for perc in percentages:
+    #     df = pd.DataFrame(columns=[f'{perc}_value', f'{perc}_value'])
+    #     for i, lst in enumerate(list_of_values):
+    #         lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+    #         upper_bound = np.percentile(lst, perc*100)
+    #         values = [x for x in lst if lower_bound < x <= upper_bound]
+    #         if values:
+    #             df.loc[f'list{i+1}'] = [min(values), max(values)]
+    #     dfs[perc] = df.reset_index(drop=True)
+
+    # return dfs
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        cols = [f'{p}_value' for p in percentages]  # column names
+        df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        dfs[f'list{i+1}'] = df  # add DataFrame to dictionary
+
+    return dfs
+
+
+get_max_min_percentiles()[0.1]
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    # dfs = {}
+    # percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    # for perc in percentages:
+    #     df = pd.DataFrame(columns=[f'{perc}_value', f'{perc}_value'])
+    #     for i, lst in enumerate(list_of_values):
+    #         lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+    #         upper_bound = np.percentile(lst, perc*100)
+    #         values = [x for x in lst if lower_bound < x <= upper_bound]
+    #         if values:
+    #             df.loc[f'list{i+1}'] = [min(values), max(values)]
+    #     dfs[perc] = df.reset_index(drop=True)
+
+    # return dfs
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        cols = [f'{p}_value' for p in percentages]  # column names
+        df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        dfs[f'list{i+1}'] = df  # add DataFrame to dictionary
+
+    return dfs
+
+
+get_max_min_percentiles()
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    # dfs = {}
+    # percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    # for perc in percentages:
+    #     df = pd.DataFrame(columns=[f'{perc}_value', f'{perc}_value'])
+    #     for i, lst in enumerate(list_of_values):
+    #         lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+    #         upper_bound = np.percentile(lst, perc*100)
+    #         values = [x for x in lst if lower_bound < x <= upper_bound]
+    #         if values:
+    #             df.loc[f'list{i+1}'] = [min(values), max(values)]
+    #     dfs[perc] = df.reset_index(drop=True)
+
+    # return dfs
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc}_value'])
+        for i, lst in enumerate(list_of_values):
+            values = [x for x in lst if x <= np.percentile(lst, perc * 100)]
+            if values:
+                df.loc[f'list{i+1}'] = [max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+        # for i, lst in enumerate(list_of_values):
+        #     min_val = min(lst)
+        #     max_val = max(lst)
+        #     vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        #     cols = [f'{p}_value' for p in percentages]  # column names
+        #     df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        #     dfs[f'list{i+1}'] = df  # add DataFrame to dictionary
+
+    return dfs
+
+
+get_max_min_percentiles()
+
+def get_max_min_percentiles() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+    name_of_river = file.split("/")[-1].split(".")[0]
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+ 
+    # loop through the percentages and compute dataframes
+    dfs = {}
+    percentages = [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]
+    for perc in percentages:
+        df = pd.DataFrame(columns=[f'{perc}_value', f'{perc}_value'])
+        for i, lst in enumerate(list_of_values):
+            lower_bound = np.percentile(lst, perc*100 - 1) if perc != 0.01 else -np.inf
+            upper_bound = np.percentile(lst, perc*100)
+            values = [x for x in lst if lower_bound < x <= upper_bound]
+            if values:
+                df.loc[f'list{i+1}'] = [min(values), max(values)]
+        dfs[perc] = df.reset_index(drop=True)
+
+    return dfs
+
+get_max_min_percentiles()[0.01]
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        cols = [f'{p}_value' for p in percentages]  # column names
+        df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        dfs[f'list{i+1}'] = df  # add DataFrame to dictionary
+
+    return dfs
+
+    
+    
+
+
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        cols = [f'{p}_value' for p in percentages]  # column names
+        df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        dfs[f'list{i+1}'] = df  # add DataFrame to dictionary
+
+    return dfs
+
+    
+    
+
+
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+
+        print(vals)
+        # cols = [f'{p}_value' for p in percentages]  # column names
+        # df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        # if vals:
+        #     dfs[i] = df
+
+    return print(vals)
+
+    
+    
+
+
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+
+        # print(vals)
+        # cols = [f'{p}_value' for p in percentages]  # column names
+        # df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        # if vals:
+        #     dfs[i] = df
+
+    return print(len(vals))
+
+    
+    
+
+
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+
+        # print(vals)
+        # cols = [f'{p}_value' for p in percentages]  # column names
+        # df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        # if vals:
+        #     dfs[i] = df
+
+    return print(vals)
+
+    
+    
+
+
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    dfs = {}
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+
+        print(vals)
+        # cols = [f'{p}_value' for p in percentages]  # column names
+        # df = pd.DataFrame(data=[vals], columns=cols, index=[f'list{i+1}'])  # create DataFrame
+        # if vals:
+        #     dfs[i] = df
+
+    return 
+
+    
+    
+
+
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+
+
+    return percentage_dataframe
+
+    
+    
+
+
+
+create_percentile_dataframe()
+import pandas as pd
+import numpy as np
+import glob
+import math 
+import plotly.graph_objs as go
+import plotly.offline as pyo
+import plotly.graph_objs as go
+import plotly.io as pio
+def fit_model(flow_data: pd.Series, doy, window=None):
+    if window is not None:
+        doy_min = (doy - window) % 365
+        doy_max = (doy + window) % 365
+        if doy_min > doy_max:
+            day_list = list(range(doy_min, 366)) + list(range(1, doy_max+1))
+        else:
+            day_list = list(range(doy_min, doy_max + 1))
+        flow_data_final = flow_data[flow_data.index.dayofyear.isin(day_list)]
+    else:
+        print(" Only one day of year is considered")
+        # flow_data_final = flow_data[flow_data.index.dayofyear == doy]
+        # params = genextreme.fit(flow_data_final, floc=0) # CHECK THIS
+        # params = list(params)
+    # return params, flow_data_final
+    return flow_data_final
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]  # modified list of percentages
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+        
+    return percentage_dataframe
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    percentage_dataframe
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    percentage_dataframe
+
+print(create_percentile_dataframe())
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=5)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    return percentage_dataframe
+
+create_percentile_dataframe()
+# Get the data
+percentile_dict = create_percentile_dataframe()
+
+percentile_dict
+
+# dfs = [percentile_dict[p] for p in [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]]
+
+# # Set the index from 1 to 365
+# dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# # Create the traces
+# traces = []
+# fill_types = ['none'] + ['tonexty'] * 11
+# for i, df in enumerate(dfs):
+#     for j, col in enumerate(df.columns):
+#         fill = fill_types[j] if i == 0 else 'tonexty'
+#         traces.append(go.Scatter(
+#             x=df.index,
+#             y=df.iloc[:, j],
+#             name=col,
+#             fill=fill,
+#         ))
+
+# # Set the layout
+# layout = go.Layout(
+#     width=1200,
+#     height=600,
+#     title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+#     xaxis=dict(title='', showticklabels=False, showgrid=False),
+#     # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+#     #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+#     yaxis=dict(
+#     title='Daily maximum and minimum discarge, in cubic feet per second',
+#     type='log',
+#     tickmode='array',
+#     showgrid=False,
+#     titlefont=dict(size=10)))
+
+#     # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+#     #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+#     #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+#     #        zeroline=False))
+
+# # Create the figure
+# fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+# pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+Plot_dataframe
+
+# dfs = [percentile_dict[p] for p in [0.01, 0.1, 0.25, 0.75, 0.9, 0.99]]
+
+# # Set the index from 1 to 365
+# dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# # Create the traces
+# traces = []
+# fill_types = ['none'] + ['tonexty'] * 11
+# for i, df in enumerate(dfs):
+#     for j, col in enumerate(df.columns):
+#         fill = fill_types[j] if i == 0 else 'tonexty'
+#         traces.append(go.Scatter(
+#             x=df.index,
+#             y=df.iloc[:, j],
+#             name=col,
+#             fill=fill,
+#         ))
+
+# # Set the layout
+# layout = go.Layout(
+#     width=1200,
+#     height=600,
+#     title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+#     xaxis=dict(title='', showticklabels=False, showgrid=False),
+#     # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+#     #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+#     yaxis=dict(
+#     title='Daily maximum and minimum discarge, in cubic feet per second',
+#     type='log',
+#     tickmode='array',
+#     showgrid=False,
+#     titlefont=dict(size=10)))
+
+#     # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+#     #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+#     #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+#     #        zeroline=False))
+
+# # Create the figure
+# fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+# pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+Plot_dataframe
+
+# # Set the index from 1 to 365
+# dfs = [df.set_index(pd.Index(range(1, 366))) for df in dfs]
+
+
+# # Create the traces
+# traces = []
+# fill_types = ['none'] + ['tonexty'] * 11
+# for i, df in enumerate(dfs):
+#     for j, col in enumerate(df.columns):
+#         fill = fill_types[j] if i == 0 else 'tonexty'
+#         traces.append(go.Scatter(
+#             x=df.index,
+#             y=df.iloc[:, j],
+#             name=col,
+#             fill=fill,
+#         ))
+
+# # Set the layout
+# layout = go.Layout(
+#     width=1200,
+#     height=600,
+#     title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+#     xaxis=dict(title='', showticklabels=False, showgrid=False),
+#     # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+#     #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+#     yaxis=dict(
+#     title='Daily maximum and minimum discarge, in cubic feet per second',
+#     type='log',
+#     tickmode='array',
+#     showgrid=False,
+#     titlefont=dict(size=10)))
+
+#     # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+#     #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+#     #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+#     #        zeroline=False))
+
+# # Create the figure
+# fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+# pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+    yaxis=dict(
+    title='Daily maximum and minimum discarge, in cubic feet per second',
+    type='log',
+    tickmode='array',
+    showgrid=False,
+    titlefont=dict(size=10)))
+
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+    #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+    #        zeroline=False))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+    yaxis=dict(
+    title='Daily maximum and minimum discarge, in cubic feet per second',
+    tickmode='array',
+    showgrid=False,
+    titlefont=dict(size=10)))
+
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+    #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+    #        zeroline=False))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #            tickmode='array', showgrid=False,titlefont=dict(size=10)))
+
+    yaxis=dict(
+    title='Daily maximum and minimum discarge, in cubic feet per second',
+    tickmode='array',
+    showgrid=False,
+    titlefont=dict(size=10)))
+
+    # yaxis=dict(title='Daily maximum and minimum discarge, in cubic feet per second',
+    #        range=[dfs[0].iloc[:, 0].min(), dfs[-1].iloc[:, -1].max()],
+    #        tickmode='array', showgrid=False,titlefont=dict(size=10),
+    #        zeroline=False))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+    title='Daily maximum and minimum discarge, in cubic feet per second',
+    tickmode='array',
+    showgrid=False,
+    titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    # yaxis=dict(
+    # title='Daily maximum and minimum discarge, in cubic feet per second',
+    # tickmode='array',
+    # showgrid=False,
+    # titlefont=dict(size=10)))
+    min_val = Plot_dataframe.iloc[:, 0].min()   # minimum value of the first column
+    max_val = Plot_dataframe.iloc[:, -1].max()  # maximum value of the last column
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=min_val,
+        dtick=(max_val - min_val) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    min_val = Plot_dataframe.iloc[:, 0].min()   # minimum value of the first column
+    max_val = Plot_dataframe.iloc[:, -1].max()  # maximum value of the last column
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=min_val,
+        dtick=(max_val - min_val) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=10)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    return percentage_dataframe
+
+create_percentile_dataframe()
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        type = 'log',
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=1)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    return percentage_dataframe
+
+create_percentile_dataframe()
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        type = 'log',
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=0)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    return percentage_dataframe
+
+create_percentile_dataframe()
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=30)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    return percentage_dataframe
+
+create_percentile_dataframe()
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+def create_percentile_dataframe() -> pd.DataFrame:
+    # Creating a function max and min from percentiles values
+    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
+
+    # Define data storages: 
+    list_of_values = []
+    out_put_list = []
+
+    for i in range(1, 366):
+        out_put = fit_model(flow_data, i, window=2)
+        out_put_list.append(out_put)
+
+    for dataframe in out_put_list:
+        # change values into a list
+        values =dataframe.iloc[:, 0].values.tolist()
+        clean_list = [x for x in values if not math.isnan(x)]
+        list_of_values.append(clean_list)
+
+    percentage_dataframe = pd.DataFrame(columns=["min_value", "10%_value","25%_value","75%_value","90%_value","99%_value"])
+    percentages = [0.0, 0.1, 0.25, 0.75, 0.9, 1.0]
+
+    for i, lst in enumerate(list_of_values):
+        min_val = min(lst)
+        max_val = max(lst)
+        vals = [min_val] + [np.percentile(lst, p * 100) for p in percentages[1:-1]] + [max_val]
+        # append the values to th percentile dataframe:
+        percentage_dataframe.loc[i] = vals
+
+    return percentage_dataframe
+
+create_percentile_dataframe()
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        type='linear',
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        type='log',
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        # tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        type='log',
+        # tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        # tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='linear',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='auto',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min()] + [np.percentile(Plot_dataframe.iloc[:, 0], p * 100) for p in [0.1, 0.25, 0.75, 0.9]] + [Plot_dataframe.iloc[:, 0].max()],
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min()] + [25000, 50000, 100000] + [Plot_dataframe.iloc[:, 0].max()],
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='auto',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    # yaxis=dict(
+    #     title='Daily maximum and minimum discarge, in cubic feet per second',
+    #     tickmode='auto',
+    #     tick0=Plot_dataframe.iloc[:, 0].min(),
+    #     dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+    #     showgrid=False,
+    #     titlefont=dict(size=10)))
+
+    yaxis=dict(
+    title='Daily maximum and minimum discarge, in cubic feet per second',
+    tickmode='log',
+    showgrid=False,
+    titlefont=dict(size=10)
+))
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='auto',
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min() + [500000] + Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    # yaxis=dict(
+    #     title='Daily maximum and minimum discarge, in cubic feet per second',
+    #     tickmode='array',
+    #     type='log',
+    #     tick0=Plot_dataframe.iloc[:, 0].min(),
+    #     dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+    #     showgrid=False,
+    #     titlefont=dict(size=10)))
+
+    yaxis=dict(
+    title='Daily maximum and minimum discharge, in cubic feet per second',
+    tickmode='array',
+    type='log',
+    tick0=Plot_dataframe.iloc[:, 0].min(),
+    dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+    showgrid=False,
+    titlefont=dict(size=10)
+    ),
+    xaxis=dict(
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min()] + [50000, 100000, 150000] + [Plot_dataframe.iloc[:, -1].max()],
+        showgrid=False,
+        titlefont=dict(size=10)
+    ))
+
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[50000, 100000],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 250000, 500000, 750000, 1000000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 250000, 500000, 1000000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 250000, 500000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 500000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,100000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,100000,200000, 500000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,100000,200000, 500000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickformat='.0f',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,100000,200000, 500000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+# Get the data
+Plot_dataframe = create_percentile_dataframe()
+
+# set the index from 1 to 365
+Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+
+
+# Create the traces
+traces = []
+fill_types = ['none'] + ['tonexty'] * 5
+
+for j, col in enumerate(Plot_dataframe.columns):
+    fill = fill_types[j]
+    traces.append(go.Scatter(
+        x=Plot_dataframe.index,
+        y=Plot_dataframe.iloc[:, j],
+        name=col,
+        fill=fill,
+    ))
+
+# Set the layout
+layout = go.Layout(
+    width=1200,
+    height=600,
+    title='Indus at Tarbela Dam Flow Percentiles (cfs)',
+    xaxis=dict(title='', showticklabels=False, showgrid=False),
+
+    yaxis=dict(
+        title='Daily maximum and minimum discarge, in cubic feet per second',
+        tickmode='array',
+        tickformat='.0f',
+        tickvals=[Plot_dataframe.iloc[:, 0].min(), 25000, 50000,100000,200000, 500000, Plot_dataframe.iloc[:, -1].max()],
+        type='log',
+        tick0=Plot_dataframe.iloc[:, 0].min(),
+        dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+        showgrid=False,
+        titlefont=dict(size=10)))
+
+   
+
+
+# Create the figure
+fig = go.Figure(data=traces, layout=layout)
+
+# Show the figure
+pio.show(fig)
+%history -f my_commands.txt

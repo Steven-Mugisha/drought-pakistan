@@ -77,3 +77,4 @@ def scrape_wapda_riverflow_data() -> pd.DataFrame:
 
 if __name__ == "__main__":
     scrape_wapda_riverflow_data()
+
