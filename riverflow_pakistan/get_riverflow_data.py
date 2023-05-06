@@ -36,7 +36,6 @@ def scrape_wapda_riverflow_data() -> pd.DataFrame:
             if row_values:
                 table_data.append(row_values)
 
-
         if table_data:
             columnsNames = ["Date", "LEVEL (FEET) INDUS AT TARBELA", "INFLOW INDUS AT TARBELA", "OUTFLOW INDUS AT TARBELA",
                             "INFLOW KABUL AT NOWSHERA", "LEVEL (FEET) JEHLUM AT MANGLA", "INFLOW JEHLUM AT MANGLA",
@@ -61,9 +60,26 @@ def scrape_wapda_riverflow_data() -> pd.DataFrame:
 
             # check the last date in the recentYearsRiverFlow_df
             lastDate = recentYearsRiverFlow_df["Date"].iloc[-1]
-            if lastDate != riverflow_subset_reversed["Date"].iloc[-1]:
-                # append all values after the lastDate
-                data_to_append = riverflow_subset_reversed[riverflow_subset_reversed["Date"] > lastDate]
+            print(f"------------------Last date of old data is held here: {lastDate}-------------")
+
+            lastDate_newdata = riverflow_subset_reversed["Date"].iloc[-1]
+
+            print(f"------------------Last date of new data is held here: {lastDate_newdata}-------------")
+            if lastDate != lastDate_newdata:
+
+                # Take the lastDate_newdata - 60 days and appned all values after that date to the recentYearsRiverFlow_df:
+                lastDate_newdata = pd.to_datetime(lastDate_newdata)
+               
+                _60days_before = lastDate_newdata - pd.Timedelta(days=60)
+                _60days_before  = _60days_before .strftime('%Y-%m-%d')
+
+                print(f"------------------ Date of 60 days before is held here : {_60days_before}-------------")
+
+                print("------- Appending data for the last 60 days -------------")
+
+                # Drop all rows from the recentYearsRiverFlow_df that has date greater than _60days_before:
+                recentYearsRiverFlow_df = recentYearsRiverFlow_df[recentYearsRiverFlow_df["Date"] < _60days_before]
+                data_to_append = riverflow_subset_reversed[riverflow_subset_reversed["Date"] > _60days_before]
                 recentYearsRiverFlow_df = recentYearsRiverFlow_df.append(data_to_append, ignore_index=True)
                 recentYearsRiverFlow_df.to_csv("recentYearsRiverFlow.csv", index=False)
             else:
