@@ -20,7 +20,7 @@ col1, col2, col3 = st.columns([1, .18, .18])
 name_rivers = ['Chenab_at_Marala', 'Indus_at_Tarbela',
                'Jhelum_at_Mangla', 'Kabul_at_Nowshera']
 
-recent_years = [2017, 2018,2019,2020]
+recent_years = [2019,2018,2017]
 with col2:
 
     selected_station = st.selectbox(
@@ -35,7 +35,6 @@ with col2:
         recent_years,
         index=recent_years.index(recent_years[0])
     )
-@st.cache_data
 def station_datasets(selected_station) -> pd.DataFrame:
     """Load the station data set from the directory and selects the year of interest"""
     station_df = pd.read_csv(
@@ -47,6 +46,7 @@ def station_datasets(selected_station) -> pd.DataFrame:
 
 if selected_year != "Select Year":
     riverflow_df = station_datasets(selected_station)
+    # st.write(riverflow_df)
 
 with col1:  
   
