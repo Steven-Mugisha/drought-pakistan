@@ -123,14 +123,14 @@ def individual_year_data(url, threshold_days = 60):
     delta = today - start_date
     
     # all existing data:
-    recentYearsRiverFlow_df = pd.read_csv("recentYearsRiverFlow.csv")
+    recentYearsRiverFlow_df = pd.read_csv("/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/recentYearsRiverFlow.csv")
     # set the index to be the date column:
     recentYearsRiverFlow_df.set_index("Date", inplace=True)
 
     if current_year:
         current_year_table = get_riverflow_table(url, current_year)
 
-        if  (len(current_year_table) > threshold_days) & (len(current_year_table) == delta.days):
+        if  len(current_year_table) > threshold_days & len(current_year_table) == delta.days:
             logger.info("***------------Table data is equal to the number of days since 1st of January.------------***")
             current_year_table = year_specific_dataframe(current_year_table, current_year)
             # select the last index in the dataframe:
@@ -160,7 +160,7 @@ def individual_year_data(url, threshold_days = 60):
             else:
                 logger.info("***------------Table data is not equal to the number of days since 1st of January.------------***")
         
-        elif len((current_year_table) < threshold_days) & (len(current_year_table) == delta.days):
+        elif len(current_year_table) < threshold_days & len(current_year_table) == delta.days:
             logger.info("***------------Table data is equal to the number of days since 1st of January.------------***")
             logger.info("***------------ The current year doesn't have enough data defined by the threshold day.------------***")
             previous_year_table = get_riverflow_table(url, previous_year)
