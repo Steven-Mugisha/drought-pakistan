@@ -123,7 +123,7 @@ def individual_year_data(url, threshold_days = 60):
     delta = today - start_date
     
     # all existing data:
-    recentYearsRiverFlow_df = pd.read_csv("/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/recentYearsRiverFlow.csv")
+    recentYearsRiverFlow_df = pd.read_csv("recentYearsRiverFlow.csv")
     # set the index to be the date column:
     recentYearsRiverFlow_df.set_index("Date", inplace=True)
 
