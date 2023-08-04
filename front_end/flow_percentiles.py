@@ -11,6 +11,13 @@ import plotly.graph_objs as go
 import plotly.offline as pyo
 import plotly.graph_objs as go
 import plotly.io as pio
+from dotenv import load_dotenv
+import os
+
+
+# the path to the folder:
+load_dotenv()
+path = os.getenv("path")
 
 
 def fit_model(flow_data: pd.Series, doy, window=None):
@@ -34,7 +41,7 @@ def fit_model(flow_data: pd.Series, doy, window=None):
 def create_percentile_dataframe(station) -> pd.DataFrame:
 
     # Creating a function max and min from percentiles values
-    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/"+ station +".csv"
+    file = f"{path}/flows/"+ station +".csv"
 
     flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
     name_of_river = file.split("/")[-1].split(".")[0]

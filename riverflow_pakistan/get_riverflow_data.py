@@ -1,7 +1,6 @@
 
-"""
-    Author - Steven Mugisha Mizero
-"""
+""" Author - Steven Mugisha Mizero """
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup as bs
@@ -11,7 +10,6 @@ import time
 import logging
 from dotenv import load_dotenv
 import os
-
 
 
 # the path to the folder:

@@ -5,10 +5,19 @@ import plotly.graph_objs as go
 from flow_percentiles import create_percentile_dataframe
 import logging
 import calendar
+from dotenv import load_dotenv
+import os
+
+
+# the path to the folder:
+load_dotenv()
+path = os.getenv("path")
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 st.set_page_config(layout="wide")
 
@@ -17,10 +26,10 @@ st.markdown("<h1 style='font-size: 30px;'>RiverFlow hydrographs of main rivers i
 col1, col2, col3 = st.columns([1, .18, .18])
 
 # Varaibles for selection:
-name_rivers = ['Chenab_at_Marala', 'Indus_at_Tarbela',
-               'Jhelum_at_Mangla', 'Kabul_at_Nowshera']
+name_rivers = ['Chenab_at_Marala', 'Indus_at_Tarbela','Jhelum_at_Mangla', 'Kabul_at_Nowshera']
 
 recent_years = [2019,2018,2017]
+
 with col2:
 
     selected_station = st.selectbox(
@@ -35,10 +44,11 @@ with col2:
         recent_years,
         index=recent_years.index(recent_years[0])
     )
+    
 def station_datasets(selected_station) -> pd.DataFrame:
     """Load the station data set from the directory and selects the year of interest"""
-    station_df = pd.read_csv(
-        "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/"+selected_station+".csv")
+
+    station_df = pd.read_csv(f"{path}/flows/"+selected_station+".csv")
     year_subset_df = station_df[station_df["Year"] == selected_year]
     year_subset_df["Year"] = year_subset_df["Year"].astype(str)
     year_subset_df = year_subset_df.set_index(pd.Index(range(1, 366)))
