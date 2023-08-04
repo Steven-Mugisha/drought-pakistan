@@ -9,6 +9,14 @@ import pandas as pd
 from datetime import datetime, timedelta
 import time
 import logging
+from dotenv import load_dotenv
+import os
+
+
+
+# the path to the folder:
+load_dotenv()
+path = os.getenv("path")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)  # Set the desired logging level
@@ -126,7 +134,7 @@ def individual_year_data(url, threshold_days = 60):
     
 
     # the existing dataset:
-    recentYearsRiverFlow_df = pd.read_csv("/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/recentYearsRiverFlow.csv")
+    recentYearsRiverFlow_df = pd.read_csv(f"{path}/recentYearsRiverFlow.csv")
     # set the index to be the date column:
     recentYearsRiverFlow_df.set_index("Date", inplace=True)
 
@@ -151,7 +159,7 @@ def individual_year_data(url, threshold_days = 60):
 
 
                 # saving the data to csv:
-                recentYearsRiverFlow_df.to_csv("/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/recentYearsRiverFlow.csv")
+                recentYearsRiverFlow_df.to_csv(f"{path}/recentYearsRiverFlow.csv")
                 logger.info(" ------------ Data saved to csv. ------------ ")
     
             else:
@@ -188,7 +196,7 @@ def individual_year_data(url, threshold_days = 60):
             
 
             # saving the data to csv:
-            recentYearsRiverFlow_df.to_csv("/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/recentYearsRiverFlow.csv")
+            recentYearsRiverFlow_df.to_csv(f"{path}/recentYearsRiverFlow.csv")
         else:
             logger.info("No data at all")
                 
