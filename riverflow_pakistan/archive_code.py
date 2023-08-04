@@ -1,7 +1,7 @@
 
 def get_max_min_percentiles() -> pd.DataFrame:
     # Creating a function max and min from percentiles values
-    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    file = f"{path}/flows/indus_at_tarbela.csv"
     flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
     name_of_river = file.split("/")[-1].split(".")[0]
 
@@ -42,7 +42,7 @@ get_max_min_percentiles()[0.01]
 
 def create_percentile_dataframe() -> pd.DataFrame:
     # Creating a function max and min from percentiles values
-    file = "/Users/mugisha/Desktop/clone/Drought_Pakistan/riverflow_pakistan/flows/indus_at_tarbela.csv"
+    file = f"{path}/flows/indus_at_tarbela.csv"
     flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
     name_of_river = file.split("/")[-1].split(".")[0]
 
