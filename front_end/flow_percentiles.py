@@ -14,13 +14,12 @@ import plotly.io as pio
 from dotenv import load_dotenv
 import os
 
-
 # the path to the folder:
 load_dotenv()
 path = os.getenv("path")
 
 
-def fit_model(flow_data: pd.Series, doy, window=None):
+def fit_model(flow_data: pd.Series, doy, window=None) -> pd.DataFrame:
     if window is not None:
         doy_min = (doy - window) % 365
         doy_max = (doy + window) % 365
@@ -37,44 +36,31 @@ def fit_model(flow_data: pd.Series, doy, window=None):
     # return params, flow_data_final
     return flow_data_final
 
+def percentiles(station_name: str) -> pd.DataFrame:
+    """This function creates a DataFrame with the percentiles values for each day of the year for a given station."""
+    
+    def clean_nan(lst):
+        return [x for x in lst if not math.isnan(x)]
 
-def create_percentile_dataframe(station) -> pd.DataFrame:
+    percentile_dataframe = pd.DataFrame(columns=["min", "10%", "25%", "75%", "90%", "max"])
 
-    # Creating a function max and min from percentiles values
-    file = f"{path}/flows/"+ station +".csv"
+    # load data
+    directory = f"{path}/old_version_flow.csv"
+    stations_flow_df = pd.read_csv(directory, index_col=0, parse_dates=True)
+    station_serie = stations_flow_df[station_name]
 
-    flow_data = pd.read_csv(file, index_col=0, parse_dates=True)
-    name_of_river = file.split("/")[-1].split(".")[0]
-
-    # Define data storages:
-    list_of_values = []
-    out_put_list = []
-
-    for i in range(1, 366):
-        out_put = fit_model(flow_data, i, window=10)
-        out_put_list.append(out_put)
-
-    for dataframe in out_put_list:
-        # change values into a list
-        values = dataframe.iloc[:, 0].values.tolist()
-        clean_list = [x for x in values if not math.isnan(x)]
-        list_of_values.append(clean_list)
-
-    Plot_dataframe = pd.DataFrame(columns=[
-                                  "min_value", "0.1_value", "0.25_value", "0.75_value", "0.9_value", "max_value"])
+    # Collect data and calculate percentiles
+    model_values = [fit_model(station_serie, i, window=10) for i in range(1, 366)]
+    list_of_values = [clean_nan(dataframe.values.tolist()) for dataframe in model_values]
+    
+    percentiles = [0.1, 0.25, 0.75, 0.9]
     for i, lst in enumerate(list_of_values):
-        percentages = [0.1, 0.25, 0.75, 0.9]
-        min_value = min(lst)
-        max_value = max(lst)
+        percentile_values = [min(lst)] + [np.percentile(lst, perc * 100) for perc in percentiles] + [max(lst)]
+        percentile_dataframe.loc[f'list{i + 1}'] = percentile_values
+        percentile_dataframe = percentile_dataframe.reset_index(drop=True)
 
-        # create a list of values for each percentile and incldue the min and max values which are the min and max values all in a comphrensive list
-        percentile_values = [
-            min_value] + [np.percentile(lst, perc*100) for perc in percentages] + [max_value]
-        # Plot_dataframe.loc[f'list{i+1}'] = percentile_values
-        Plot_dataframe.loc[f'list{i+1}'] = percentile_values
-        Plot_dataframe = Plot_dataframe.reset_index(drop=True)
+    return percentile_dataframe
 
-    return Plot_dataframe
+# if __name__ == "__main__":
+#     percentiles("kabul_at_nowshera (cfs)")
 
-if __name__ == "__main__":
-    create_percentile_dataframe()

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
-from flow_percentiles import create_percentile_dataframe
+from flow_percentiles import percentiles
 import logging
 import calendar
 from dotenv import load_dotenv
@@ -26,12 +26,10 @@ st.markdown("<h1 style='font-size: 30px;'>RiverFlow hydrographs of main rivers i
 col1, col2, col3 = st.columns([1, .18, .18])
 
 # Varaibles for selection:
-name_rivers = ['Chenab_at_Marala', 'Indus_at_Tarbela','Jhelum_at_Mangla', 'Kabul_at_Nowshera']
-
-recent_years = [2019,2018,2017]
+name_rivers = ["indus_at_tarbela (cfs)","kabul_at_nowshera (cfs)","jhelum_at_mangal (cfs)","cheanab_at_marala (cfs)"]
+recent_years = [2019,2018,2017,2016,2015,2014,2013,2012,2011,2010]
 
 with col2:
-
     selected_station = st.selectbox(
         "Select Station",
         name_rivers,
@@ -45,37 +43,41 @@ with col2:
         index=recent_years.index(recent_years[0])
     )
     
-def station_datasets(selected_station) -> pd.DataFrame:
-    """Load the station data set from the directory and selects the year of interest"""
+def selected_station_df(station:str) -> pd.DataFrame:
+    """ Load the station data set from the directory and selects the year of interest """
 
-    station_df = pd.read_csv(f"{path}/flows/"+selected_station+".csv")
+    directory = f"{path}/old_version_flow.csv"
+    station_df = pd.read_csv(directory, index_col=0, parse_dates=True)
+    station_df = station_df[station_df[station].notna()]
     year_subset_df = station_df[station_df["Year"] == selected_year]
     year_subset_df["Year"] = year_subset_df["Year"].astype(str)
     year_subset_df = year_subset_df.set_index(pd.Index(range(1, 366)))
+
     return year_subset_df
 
+
 if selected_year != "Select Year":
-    riverflow_df = station_datasets(selected_station)
+    riverflow_df = selected_station_df(selected_station)
     # st.write(riverflow_df)
 
 with col1:  
   
     try:
-        Plot_dataframe = create_percentile_dataframe(selected_station)
+        plot_df = percentiles(selected_station)
         # set the index from 1 to 365
-        Plot_dataframe = Plot_dataframe.set_index(pd.Index(range(1, 366)))
+        plot_df = plot_df.set_index(pd.Index(range(1, 366)))
 
         # Create the traces
         traces = []
         fill_colors = ['brown', 'saddlebrown', 'moccasin', 'lawngreen', 'paleturquoise', 'blue']
 
-        for j, col in enumerate(Plot_dataframe.columns):
+        for j, col in enumerate(plot_df.columns):
             fill = 'tonexty' if j > 0 else 'none'
             fillcolor = fill_colors[j] if j < len(fill_colors) else None
             linecolor = 'red' if j == 0 else fillcolor
             traces.append(go.Scatter(
-                x=Plot_dataframe.index,
-                y=Plot_dataframe.iloc[:, j],
+                x=plot_df.index,
+                y=plot_df.iloc[:, j],
                 name=col,
                 fill=fill,
                 fillcolor=fillcolor,
@@ -109,10 +111,10 @@ with col1:
                 title='Daily discharge (CFS)',
                 tickmode='array',
                 tickformat='.0f',
-                tickvals=[Plot_dataframe.iloc[:, 0].min(), 1000, 10000, 100000, Plot_dataframe.iloc[:, -1].max()],
+                tickvals=[plot_df.iloc[:, 0].min(), 1000, 10000, 100000, plot_df.iloc[:, -1].max()],
                 type='log',
-                tick0=Plot_dataframe.iloc[:, 0].min(),
-                dtick=(Plot_dataframe.iloc[:, -1].max() - Plot_dataframe.iloc[:, 0].min()) / 10,
+                tick0=plot_df.iloc[:, 0].min(),
+                dtick=(plot_df.iloc[:, -1].max() - plot_df.iloc[:, 0].min()) / 10,
                 showgrid=False,
                 titlefont=dict(size=15, color='black'),
                 showline=True,
