@@ -2,7 +2,10 @@
 """ Author - Steven Mugisha Mizero """
 
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.options import Options 
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
 from bs4 import BeautifulSoup as bs
 import pandas as pd
 from datetime import datetime, timedelta
@@ -60,8 +63,9 @@ def get_year_riverflow_table(url, year) -> pd.DataFrame:
     # defining selenium variables:
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    # s = Service(f'{path}/chromedriver')
 
-    with webdriver.Chrome(options=chrome_options) as driver:
+    with webdriver.Chrome(options=chrome_options, service=ChromeService(ChromeDriverManager().install())) as driver:
         driver.get(url)
         time.sleep(1)
 
