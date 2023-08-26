@@ -3,16 +3,15 @@
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options 
-from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
 from bs4 import BeautifulSoup as bs
-import pandas as pd
 from datetime import datetime, timedelta
 import time
 import logging
 from dotenv import load_dotenv
 import os
+import pandas as pd
 
 
 # the path to the folder:
@@ -25,36 +24,42 @@ logger = logging.getLogger(__name__)
 
 
 def create_dataframe() -> pd.DataFrame:
-    """ This function creates a dataframe with the following columns: """
+    """Creates an empty dataframe with predefined columns."""
     
-    columns_names = ["Date", "LEVEL (FEET) INDUS AT TARBELA", "INFLOW INDUS AT TARBELA", "OUTFLOW INDUS AT TARBELA",
-                        "INFLOW KABUL AT NOWSHERA", "LEVEL (FEET) JEHLUM AT MANGLA", "INFLOW JEHLUM AT MANGLA",
-                            "OUTFLOW JEHLUM AT MANGLA", "INFLOW CHENAB AT MARALA",
-                                 "CURRENT YEAR", "LAST YEAR", "AVG: Last 10-years"]
+    column_names = [
+        "Date", "LEVEL (FEET) INDUS AT TARBELA", "INFLOW INDUS AT TARBELA", "OUTFLOW INDUS AT TARBELA",
+        "INFLOW KABUL AT NOWSHERA", "LEVEL (FEET) JEHLUM AT MANGLA", "INFLOW JEHLUM AT MANGLA",
+        "OUTFLOW JEHLUM AT MANGLA", "INFLOW CHENAB AT MARALA",
+        "CURRENT YEAR", "LAST YEAR", "AVG: Last 10-years"
+    ]
     
-    output_table = pd.DataFrame(columns=columns_names)
+    output_table = pd.DataFrame(columns=column_names)
     return output_table
 
-
-def year_specific_dataframe(output_table,year) -> pd.DataFrame:
-    """ This function edits the dataframe and changes the year column to the year specified in the function call. """
-
-    output_table_subset = output_table[["Date","INFLOW INDUS AT TARBELA", "INFLOW KABUL AT NOWSHERA", "INFLOW JEHLUM AT MANGLA", "INFLOW CHENAB AT MARALA"]]
-    columns_names = ["Date","indus_at_tarbela (cfs)", "kabul_at_nowshera (cfs)", "jhelum_at_mangal (cfs)", "cheanab_at_marala (cfs)"]
-    output_table_subset.columns = columns_names
+def year_specific_dataframe(output_table: pd.DataFrame, year: int) -> pd.DataFrame:
+    """Filters and transforms the dataframe for a specific year."""
+    
+    output_table_subset = output_table[[
+        "Date", "INFLOW INDUS AT TARBELA", "INFLOW KABUL AT NOWSHERA",
+        "INFLOW JEHLUM AT MANGLA", "INFLOW CHENAB AT MARALA"
+    ]]
+    
+    column_names = [
+        "Date", "indus_at_tarbela (cfs)", "kabul_at_nowshera (cfs)",
+        "jhelum_at_mangal (cfs)", "cheanab_at_marala (cfs)"
+    ]
+    
+    output_table_subset.columns = column_names
 
     output_table_subset["Date"] = output_table_subset["Date"].apply(lambda x: x.replace(" ", "-"))
-    output_table_subset["Date"] = [date_str + f'-{year}' for date_str in output_table_subset["Date"]]
-    output_table_subset["Date"] = [pd.to_datetime(date_str, format='%d-%b-%Y').strftime('%Y-%m-%d') for date_str in output_table_subset["Date"]]
+    output_table_subset["Date"] = [f"{date_str}-{year}" for date_str in output_table_subset["Date"]]
+    output_table_subset["Date"] = pd.to_datetime(output_table_subset["Date"], format='%d-%b-%Y').dt.strftime('%Y-%m-%d')
 
-    # set the index to be the date column:
     output_table_subset.set_index("Date", inplace=True)
-    output_table_subset.index = pd.to_datetime(output_table_subset.index)
-    output_table_subset.index = output_table_subset.index.strftime('%Y-%m-%d')
+    output_table_subset.index = pd.to_datetime(output_table_subset.index).strftime('%Y-%m-%d')
     out_put_year_df = output_table_subset.sort_index(ascending=True)
 
     return out_put_year_df
-
 
 def get_year_riverflow_table(url, year) -> pd.DataFrame:
 
@@ -194,6 +199,8 @@ def individual_year_data(url, threshold_days = 60):
             recentYearsRiverFlow_df = recentYearsRiverFlow_df[recentYearsRiverFlow_df.index < before_threshold_day]
             data_to_append = combined_table[combined_table.index > before_threshold_day]
             recentYearsRiverFlow_df = pd.concat([recentYearsRiverFlow_df, data_to_append], axis=0)
+            recentYearsRiverFlow_df = recentYearsRiverFlow_df * 1000
+            recentYearsRiverFlow_df['Year'] = recentYearsRiverFlow_df.index.year
             logger.info(" ------------ Dataframes updated. ------------ ")
             
 

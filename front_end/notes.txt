@@ -1,2 +1,4 @@
 
 # imputing missing values using the median of that year
+
+# deploy on azure app services:  https://www.youtube.com/watch?v=2toRzAYT8yo 

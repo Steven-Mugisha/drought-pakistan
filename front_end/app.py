@@ -30,7 +30,7 @@ col1, col2= st.columns([2, .4])
 
 # Varaibles for selection:
 name_rivers = ["indus_at_tarbela (cfs)","kabul_at_nowshera (cfs)","jhelum_at_mangal (cfs)","cheanab_at_marala (cfs)"]
-recent_years = [2019,2018,2017,2016,2015,2014,2013,2012,2011,2010]
+recent_years = [2023,2022,2021,2020,2019,2018,2017,2016,2015,2014]
 
 with col2:
     selected_station = st.selectbox(
@@ -49,11 +49,10 @@ with col2:
 def selected_station_df(station:str) -> pd.DataFrame:
     """ Load the station data set from the directory and selects the year of interest """
 
-    directory = f"{path}/old_version_flow.csv"
+    directory = f"{path}/recentYearsRiverFlow.csv"
     station_df = pd.read_csv(directory, index_col=0, parse_dates=True)
     station_df = station_df[station_df[station].notna()]
     year_subset_df = station_df[station_df["Year"] == selected_year]
-    # year_subset_df["Year"] = year_subset_df["Year"].astype(str)
     year_subset_df = year_subset_df.set_index(pd.Index(range(1, len(year_subset_df)+1)))
  
     return year_subset_df
@@ -106,7 +105,6 @@ with col1:
             showlegend=True
 
             )
-        
         # Create the trace for the new line plot
         Line_trace = go.Scatter(
             x=riverflow_df.index,
