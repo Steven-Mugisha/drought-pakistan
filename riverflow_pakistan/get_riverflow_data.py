@@ -13,9 +13,9 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+# from selenium.webdriver.common.by import By
+# from selenium.webdriver.support.ui import WebDriverWait
+# from selenium.webdriver.support import expected_conditions as EC
 
 
 # the path to the folder:
@@ -261,3 +261,5 @@ def individual_year_data(url, threshold_days=60):
 if __name__ == "__main__":
     url = "https://www.wapda.gov.pk/river-flow"
     individual_year_data(url, threshold_days=60)
+
+
