@@ -7,6 +7,7 @@ import logging
 import calendar
 from dotenv import load_dotenv
 import os
+import json
 
 # the path to the folder:
 load_dotenv()
@@ -18,6 +19,19 @@ logger = logging.getLogger(__name__)
 
 st.set_page_config(layout="wide")
 
+@st.cache(allow_output_mutation=True)
+def health_check():
+   return {"status": "ok"}
+
+# Define a new route for the health check path
+def check_health():
+   health_status = health_check()
+   return json.dumps(health_status)
+
+# # Use Streamlit's st.button to trigger the health check
+# if st.button("Check Health"):
+#    health_status = check_health()
+#    st.write("Health Check Status:", health_status)
 
 st.markdown(
     "<h1 style='font-size:40px; text-align: center;'>RiverFlow hydrographs of main rivers in Pakistan</h1>",
