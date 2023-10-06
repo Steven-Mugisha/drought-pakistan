@@ -45,7 +45,8 @@ def percentiles(station_name: str) -> pd.DataFrame:
     percentile_dataframe = pd.DataFrame(columns=["min", "10%", "25%", "75%", "90%", "max"])
 
     # load data
-    directory = f"{path}/old_version_flow.csv"
+    # directory = f"{path}/old_version_flow.csv"
+    directory = f"riverflow.csv"
     stations_flow_df = pd.read_csv(directory, index_col=0, parse_dates=True)
     station_serie = stations_flow_df[station_name]
 
