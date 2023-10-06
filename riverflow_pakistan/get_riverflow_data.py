@@ -5,6 +5,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup as bs
 from datetime import datetime, timedelta
 import time
@@ -12,11 +15,6 @@ import logging
 from dotenv import load_dotenv
 import os
 import pandas as pd
-
-# from selenium.webdriver.common.by import By
-# from selenium.webdriver.support.ui import WebDriverWait
-# from selenium.webdriver.support import expected_conditions as EC
-
 
 # the path to the folder:
 load_dotenv()
@@ -77,55 +75,54 @@ def get_year_riverflow_table(url, year) -> pd.DataFrame:
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     # s = Service(f'{path}/chromedriver')
-
     with webdriver.Chrome(options=chrome_options, service=ChromeService(ChromeDriverManager().install())) as driver:
-        driver.get(url)
-        time.sleep(1)
-
         try:
-            select_element = driver.find_element(
-                "css selector", ".MuiSelect-root.MuiSelect-select.MuiSelect-selectMenu.MuiSelect-outlined.MuiInputBase-input.MuiOutlinedInput-input")
+            driver.get(url)
+            # Use WebDriverWait to wait for the select element to be clickable
+            select_element = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, ".MuiSelect-root.MuiSelect-select.MuiSelect-selectMenu.MuiSelect-outlined.MuiInputBase-input.MuiOutlinedInput-input"))
+            )
             logger.info("Select element found.")
 
-            # I want to see the options in the select element and log them out:
+            # Click on the select element
             select_element.click()
-            time.sleep(1)
-            select_options = driver.find_elements(
-                "css selector", ".MuiButtonBase-root.MuiListItem-root.MuiMenuItem-root.MuiMenuItem-gutters.MuiListItem-gutters.MuiListItem-button")
-            logger.info("Select options found.")
-            for option in select_options:
-                if option.text == str(year):
-                    option.click()
-                    logger.info(f"Selected the year: {year} option clicked")
-                    time.sleep(1)
-                    # Now I want to get the table data:
-                    page_source_overview = driver.page_source
-                    soup = bs(page_source_overview, "html.parser")
-                    time.sleep(5)
-                    table = soup.find("table")
-                    logger.info("------------ Table found ------------")
 
-                    # list to contain the scraped table data:
-                    table_data = []
-                    for row in table.find_all('tr'):
-                        row_values = []
-                        for cell in row.find_all('td'):
-                            row_values.append(cell.text.strip())
-                        if row_values:
-                            table_data.append(row_values)
+            # Use WebDriverWait to wait for the year option to be clickable
+            year_option = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, f"//li[text()='{year}']"))
+            )
 
-                    # generate the dataframe for the scraped table data:
-                    output_table = create_dataframe()
-                    for row in table_data[:]:
-                        output_table.loc[len(output_table)] = row
-                        output_table = output_table.iloc[::-1]
-                    logger.info(
-                        f" The length of the table {len(output_table)}")
-                else:
-                    logger.info("------------ Year not found ------------ ")
+            # Click on the year option
+            year_option.click()
+            logger.info(f"Selected the year: {year} option clicked")
+
+            # Use WebDriverWait to wait for the table element to be present
+            table = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.TAG_NAME, "table"))
+            )
+            logger.info("------------ Table found ------------")
+
+            # list to contain the scraped table data:
+            table_data = []
+            for row in table.find_elements(By.TAG_NAME, 'tr'):
+                row_values = []
+                for cell in row.find_elements(By.TAG_NAME, 'td'):
+                    row_values.append(cell.text.strip())
+                if row_values:
+                    table_data.append(row_values)
+
+            # generate the dataframe for the scraped table data:
+            output_table = create_dataframe()
+            for row in table_data[:]:
+                output_table.loc[len(output_table)] = row
+                output_table = output_table.iloc[::-1]
+            logger.info(
+                f" The length of the table {len(output_table)}")
 
         except Exception as e:
             logger.error(f"------------Error: {e}------------")
+            import traceback
+            traceback.print_exc()
 
     return output_table
 
