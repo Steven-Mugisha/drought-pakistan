@@ -26,9 +26,11 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
+        working-directory: front_end
       
       - name: Install dependencies
         run: pip install -r requirements.txt
+        working-directory: front_end
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
       
