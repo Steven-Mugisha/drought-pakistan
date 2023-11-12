@@ -17,8 +17,8 @@ import os
 import pandas as pd
 
 # the path to the folder:
-load_dotenv()
-path = os.getenv("path")
+# load_dotenv()
+# path = os.getenv("path")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)  # Set the desired logging level
@@ -154,7 +154,9 @@ def individual_year_data(url, threshold_days=60):
         f" ------------ The number of days since 1st of January: {delta.days} ------------ ")
 
     # the existing dataset:
-    recentYearsRiverFlow_df = pd.read_csv(f"{path}/riverflow.csv")
+    # recentYearsRiverFlow_df = pd.read_csv(f"{path}/riverflow.csv")
+    recentYearsRiverFlow_df = pd.read_csv("riverflow.csv")
+
     # set the index to be the date column:
     recentYearsRiverFlow_df.set_index("Date", inplace=True)
 
@@ -191,7 +193,7 @@ def individual_year_data(url, threshold_days=60):
 
                 # saving the data to csv:
                 recentYearsRiverFlow_df.to_csv(
-                    f"{path}/riverflow.csv")
+                    "riverflow.csv")
                 logger.info(" ------------ Data saved to csv. ------------ ")
 
             # else:
@@ -245,7 +247,8 @@ def individual_year_data(url, threshold_days=60):
             logger.info(" ------------ Dataframes updated. ------------ ")
 
             # saving the data to csv:
-            recentYearsRiverFlow_df.to_csv(f"{path}/riverflow.csv")
+            recentYearsRiverFlow_df.to_csv("riverflow.csv")
+            logger.info(" ------------ Data saved to csv. ------------ ")
         else:
             logger.info("No data at all")
 

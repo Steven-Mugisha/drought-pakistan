@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objs as go
 from flow_percentiles import percentiles
 import logging
@@ -19,14 +18,17 @@ logger = logging.getLogger(__name__)
 
 st.set_page_config(layout="wide")
 
+
 @st.cache(allow_output_mutation=True)
 def health_check():
-   return {"status": "ok"}
+    return {"status": "ok"}
+
 
 # Define a new route for the health check path
 def check_health():
-   health_status = health_check()
-   return json.dumps(health_status)
+    health_status = health_check()
+    return json.dumps(health_status)
+
 
 # # Use Streamlit's st.button to trigger the health check
 # if st.button("Check Health"):
@@ -35,48 +37,52 @@ def check_health():
 
 st.markdown(
     "<h1 style='font-size:40px; text-align: center;'>RiverFlow hydrographs of main rivers in Pakistan</h1>",
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
-col1, col2= st.columns([2, .4])
+col1, col2 = st.columns([2, 0.4])
 
 # Varaibles for selection:
-name_rivers = ["indus_at_tarbela (cfs)","kabul_at_nowshera (cfs)","jhelum_at_mangal (cfs)","cheanab_at_marala (cfs)"]
-recent_years = [2023,2022,2021,2020,2019,2018,2017,2016,2015,2014]
+name_rivers = [
+    "indus_at_tarbela (cfs)",
+    "kabul_at_nowshera (cfs)",
+    "jhelum_at_mangal (cfs)",
+    "cheanab_at_marala (cfs)",
+]
+recent_years = [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014]
 
 with col2:
     selected_station = st.selectbox(
-        "Select Station",
-        name_rivers,
-        index=name_rivers.index(name_rivers[0])
+        "Select Station", name_rivers, index=name_rivers.index(name_rivers[0])
     )
 
 with col2:
     selected_year = st.selectbox(
-        "Select Year",
-        recent_years,
-        index=recent_years.index(recent_years[0])
+        "Select Year", recent_years, index=recent_years.index(recent_years[0])
     )
-    
-def selected_station_df(station:str) -> pd.DataFrame:
-    """ Load the station data set from the directory and selects the year of interest """
 
-    # directory = f"{path}/recentYearsRiverFlow.csv"
-    directory = f"riverflow.csv"
+
+def selected_station_df(station: str) -> pd.DataFrame:
+    """Load the station data set from the directory and selects the year of interest"""
+
+    directory = f"{path}/riverflow.csv"
+    # directory = f"riverflow.csv"
     station_df = pd.read_csv(directory, index_col=0, parse_dates=True)
     station_df = station_df[station_df[station].notna()]
     year_subset_df = station_df[station_df["Year"] == selected_year]
-    year_subset_df = year_subset_df.set_index(pd.Index(range(1, len(year_subset_df)+1)))
- 
+    year_subset_df = year_subset_df.set_index(
+        pd.Index(range(1, len(year_subset_df) + 1))
+    )
+
     return year_subset_df
+
 
 if selected_year != "Select Year":
     riverflow_df = selected_station_df(selected_station)
 
-with col1:  
-  
+with col1:
     try:
         plot_df = percentiles(selected_station)
         # set the index from 1 to 365
@@ -84,20 +90,29 @@ with col1:
 
         # Create the traces
         traces = []
-        fill_colors = ['brown', 'saddlebrown', 'moccasin', 'lawngreen', 'paleturquoise', 'blue']
+        fill_colors = [
+            "brown",
+            "saddlebrown",
+            "moccasin",
+            "lawngreen",
+            "paleturquoise",
+            "blue",
+        ]
 
         for j, col in enumerate(plot_df.columns):
-            fill = 'tonexty' if j > 0 else 'none'
+            fill = "tonexty" if j > 0 else "none"
             fillcolor = fill_colors[j] if j < len(fill_colors) else None
-            linecolor = 'red' if j == 0 else fillcolor
-            traces.append(go.Scatter(
-                x=plot_df.index,
-                y=plot_df.iloc[:, j],
-                name=col,
-                fill=fill,
-                fillcolor=fillcolor,
-                line=dict(color=linecolor)
-            ))
+            linecolor = "red" if j == 0 else fillcolor
+            traces.append(
+                go.Scatter(
+                    x=plot_df.index,
+                    y=plot_df.iloc[:, j],
+                    name=col,
+                    fill=fill,
+                    fillcolor=fillcolor,
+                    line=dict(color=linecolor),
+                )
+            )
         # Set the layout
         # x-axis as months:
         months = [calendar.month_abbr[i] for i in range(1, 13)]
@@ -107,25 +122,57 @@ with col1:
             width=600,
             height=650,
             # title=f'{selected_station} Flow Percentiles (cfs)',
-            title={'text': f'{selected_station} Flow Percentiles (cfs)', 'x': 0.5, 'y': 1, 'xanchor': 'center', 'yanchor': 'top',
-                    'font': {'size': 20, 'color': 'black'} },
-            xaxis=dict(title='Days of the Year', titlefont=dict(size=25, color='black'), tickmode='array', showticklabels=True,
-                        showgrid=False, showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(color='black',size=20)),
-
-            yaxis=dict(title='Daily discharge (CFS)', tickmode='array', tickformat='.0f',tickvals=[plot_df.iloc[:, 0].min(), 1000, 10000, 100000, plot_df.iloc[:, -1].max()],
-                type='log', tick0=plot_df.iloc[:, 0].min(), dtick=(plot_df.iloc[:, -1].max() - plot_df.iloc[:, 0].min()) / 10, showgrid=False,
-                titlefont=dict(size=25, color='black'), showline=True, linewidth=1, linecolor='black', mirror=True, tickfont=dict(color='black',size=20)),
-
+            title={
+                "text": f"{selected_station} Flow Percentiles (cfs)",
+                "x": 0.5,
+                "y": 1,
+                "xanchor": "center",
+                "yanchor": "top",
+                "font": {"size": 20, "color": "black"},
+            },
+            xaxis=dict(
+                title="Days of the Year",
+                titlefont=dict(size=25, color="black"),
+                tickmode="array",
+                showticklabels=True,
+                showgrid=False,
+                showline=True,
+                linewidth=1,
+                linecolor="black",
+                mirror=True,
+                tickfont=dict(color="black", size=20),
+            ),
+            yaxis=dict(
+                title="Daily discharge (CFS)",
+                tickmode="array",
+                tickformat=".0f",
+                tickvals=[
+                    plot_df.iloc[:, 0].min(),
+                    1000,
+                    10000,
+                    100000,
+                    plot_df.iloc[:, -1].max(),
+                ],
+                type="log",
+                tick0=plot_df.iloc[:, 0].min(),
+                dtick=(plot_df.iloc[:, -1].max() - plot_df.iloc[:, 0].min()) / 10,
+                showgrid=False,
+                titlefont=dict(size=25, color="black"),
+                showline=True,
+                linewidth=1,
+                linecolor="black",
+                mirror=True,
+                tickfont=dict(color="black", size=20),
+            ),
             margin=dict(l=40, r=40, t=40, b=40),
-            showlegend=True
-
-            )
+            showlegend=True,
+        )
         # Create the trace for the new line plot
         Line_trace = go.Scatter(
             x=riverflow_df.index,
             y=riverflow_df.iloc[:, 1],
-            line=dict(color='black', width=5),
-            name="Selected Year"
+            line=dict(color="black", width=5),
+            name="Selected Year",
         )
         traces.append(Line_trace)
 
@@ -139,7 +186,3 @@ with col1:
 
     except ValueError as e:
         st.error(str(e))
-
-
-
-

@@ -34,10 +34,6 @@ debugpy==1.6.6
 decorator==5.1.1
 defusedxml==0.7.1
 eccodes==1.5.1
-# ecmwf-api-client==1.6.3
-# ecmwf-data==0.0.1
-# ecmwf-opendata==0.1.2
-# ecmwflibs==0.5.0
 entrypoints==0.4
 exceptiongroup==1.1.1
 executing==1.2.0
@@ -86,7 +82,7 @@ kiwisolver==1.4.4
 leafmap==0.18.2
 lxml==4.9.2
 Magics==1.5.8
-# magpye==0.1.4
+magpye==0.1.4
 markdown-it-py==2.2.0
 MarkupSafe==2.1.2
 matplotlib==3.7.0

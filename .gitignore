@@ -1,3 +1,13 @@
 # Environments
 .env
+
+# notes
 notes.txt
+
+# Virtual environment
+.venv/
+
+# az func
+test_az_func/
+
+.vscode/

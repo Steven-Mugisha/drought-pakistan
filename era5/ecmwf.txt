@@ -1,0 +1,125 @@
+
+Steps of accessing ECMWF open data: real-time forecasts
+#######################################################
+
+1. Documentations link:
+https://confluence.ecmwf.int/display/DAC/ECMWF+open+data%3A+real-time+forecasts
+
+2. The data files are generally in GRIB edition 2 format, expect for trajectories which are in BUFR edition 4 format
+
+3. File naming convention:
+
+[ROOT]/[yyyymmdd]/[HH]z/[resol]/[stream]/[yyyymmdd][HH]0000-[step][U]-[stream]-[type].[format]
+
+Explanations:
+[ROOT] - Top leve URL for the sites hosting the data
+
+[yyyymmdd] - The reference date of the forecasts (base date)
+
+[HH] is the reference time of the forecasts. Values are 00, 06 , 12  and 18.
+
+[resol]  is the horizontal resolution of the data. This is currently set to 0p4-beta and will be changed to 0p4 when the beta-testing period is over.
+
+[stream] is the forecasting system that produces the data.  Values are:
+    oper - high-resolution forecast, atmospheric fields 
+    enfo - ensemble forecast, atmospheric fields
+    waef - ensemble forecast, ocean wave fields,
+    wave - wave model,
+    scda  - short cut-off high-resolution forecast, atmospheric fields (also known as "high-frequency products")
+    scwv  - short cut-off high-resolution forecast, ocean wave fields (also known as "high-frequency products") and
+    mmsf  - multi-model seasonal forecasts fields from the ECMWF model only.  
+
+[step] is the forecast time step expressed in units U
+
+[U] is the unit used for the time step. Values are h for hours and m for month. The latter is only valid for seasonal forecasts (mmsf). 
+
+[type] is once of fc (forecast), ef (ensemble forecast), ep (ensemble probabilities) or tf (trajectory forecast for tropical cyclone tracks). 
+
+[format] is grib2 for all fields, and bufr for the trajectories. 
+
+
+
+########## Valid combinations to access the data ##########
+
+format=bufr, type=tf 
+   HH=00/12 
+  	  stream=enfo/oper, step=240h 
+   HH=06/18 
+      stream=enfo, step=144h 
+      stream=scda, step=90h 
+format=grib2 
+   HH=00/12 
+      stream=enfo/waef 
+        type=ef, step=0h to 144h by 3h, 144h to 360h by 6h 
+        type=ep, step=240h/360h 
+      stream=oper, wave 
+        type=fc, step=0h to 144h by 3h, 144h to 240h by 6h 
+   HH=06/18 
+      stream=enfo/waef 
+        type=ef, step=0h to 144h by 3h 
+      stream= scda /scwv 
+        type=fc, step=0h to 90h by 3h 
+   HH=00 
+   	  stream=mmsf, type=fc, u=m, step=1m to 7m 
+
+##########################################################
+
+Accessing the dataset:
+
+The location of the data:
+- ECMWF, with ROOT set to https://data.ecmwf.int/forecasts
+- Microsoft's Azure, with ROOT set to "https://ai4edataeuwest.blob.core.windows.net/ecmwf"
+- Amazon's AWS, with ROOT set to "https://ecmwf-forecasts.s3.eu-central-1.amazonaws.com"
+
+
+
+A package to easier the download of the ecmwf data "ecmwf_opendata"
+Essentail Github links: https://github.com/ecmwf/ecmwf-opendata, https://github.com/ecmwf/ecmwf-api-client, 
+
+Jupyter notebook showing examples of downloading the data: https://github.com/ecmwf/notebook-examples/tree/master/opencharts
+
+
+
+# for airflow: https://medium.com/@timothymugayi/7-ways-to-execute-scheduled-jobs-with-python-47d481d22b91
+
+
+
+# specify the area of the forecast data to download:
+
+https://confluence.ecmwf.int/pages/viewpage.action?pageId=151520973
+
+
+Explanations retrieving for area: 
+
+- A horizontal sub-area is in general defined by a list of its latitude/longitude coordinates North/West/South/East in decimal degrees. If South > North, the values are automatically swapped. Latitude/longitude coordinates must be given as signed numbers as follows:
+
+  Northern latitudes (north of the equator) must be given as positive numbers
+  Southern latitudes (south of the equator) must be given as negative  numbers
+  Eastern longitudes (east of the 0 degree meridian) must be given as positive numbers
+  Western longitudes (west of the 0 degree meridian) must be given as negative numbers
+
+
+Grid keyword that needs to be added when you specified the area to retrieve data for. 
+This is what it does: Specifies the target grid which can be either a Gaussian or a Latitude/Longitude grid.
+
+
+MARS requests specifying grid=av will return the archived model grid. 
+For Latitude/Longitude output, the format is in degrees, i.e. grid = 2.5/2.5, where the first number denotes the east-west resolution (longitude) and the second denotes the north-south resolution (latitude)
+The grid spacing needs to be an integer fraction of 90 degrees (latitude range from the Equator to the Pole), e.g. 0.225, 0.25, 0.28125, 0.3, 0.4, ...
+
+
+
+
+#############
+
+
+## monitor the activity on mars: https://apps.ecmwf.int/webmars/joblist/
+
+examples: https://confluence.ecmwf.int/display/WEBAPI/Python+ERA-interim+examples
+
+netcdf: https://towardsdatascience.com/read-netcdf-data-with-python-901f7ff61648
+
+https://towardsdatascience.com/how-to-use-ecmwf-weather-forecasts-in-machine-learning-models-92fc3730c5cf
+
+
+#### using the web interface: https://apps.ecmwf.int/datasets/data/s2s/levtype=sfc/type=cf/
