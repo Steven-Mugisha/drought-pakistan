@@ -11,3 +11,7 @@ notes.txt
 test_az_func/
 
 .vscode/
+
+__pycache__/
+
+.DS_Store
