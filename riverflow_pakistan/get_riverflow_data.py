@@ -1,5 +1,5 @@
-""" 
-    Author - Steven Mugisha Mizero 
+"""
+    Author - Steven Mugisha Mizero
 """
 
 from selenium import webdriver
