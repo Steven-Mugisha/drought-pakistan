@@ -4,17 +4,16 @@ import time
 import os
 import ecmwfapi
 
-
 def forecast_prec():
     while True:
         try:
             c = ECMWFDataServer()
             c.retrieve(
-                {  
-                 
+                {
+
                     })
-                   
-    
+
+
             if os.path.exists("test.nc"):
                 print("File saved successfully")
             else:
@@ -31,10 +30,6 @@ def forecast_prec():
 
 if __name__ == "__main__":
     forecast_prec()
-
-
-
-
     #  "dataset": "interim",
     #                 "date": "2023-01-01/to/2023-01-02",
     #                 "expver": "prod",
