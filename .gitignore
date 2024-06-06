@@ -15,3 +15,8 @@ test_az_func/
 __pycache__/
 
 .DS_Store
+
+# local files
+*.csv
+riverflow_db/
+riverflow/archive_code.py
