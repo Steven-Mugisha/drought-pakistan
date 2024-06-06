@@ -67,8 +67,8 @@ with col2:
 def selected_station_df(station: str) -> pd.DataFrame:
     """Load the station data set from the directory and selects the year of interest"""
 
-    directory = f"{path}/riverflow.csv"
-    # directory = f"riverflow.csv"
+    # directory = f"{path}/riverflow.csv"
+    directory = "riverflow.csv"
     station_df = pd.read_csv(directory, index_col=0, parse_dates=True)
     station_df = station_df[station_df[station].notna()]
     year_subset_df = station_df[station_df["Year"] == selected_year]

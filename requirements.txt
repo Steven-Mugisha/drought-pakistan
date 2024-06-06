@@ -82,7 +82,7 @@ kiwisolver==1.4.4
 leafmap==0.18.2
 lxml==4.9.2
 Magics==1.5.8
-magpye==0.1.4
+# magpye==0.1.4
 markdown-it-py==2.2.0
 MarkupSafe==2.1.2
 matplotlib==3.7.0
@@ -165,7 +165,7 @@ sniffio==1.3.0
 sortedcontainers==2.4.0
 soupsieve==2.4
 stack-data==0.6.2
-streamlit==1.19.0
+streamlit==1.29.0
 tenacity==8.2.2
 terminado==0.17.1
 tinycss2==1.2.1

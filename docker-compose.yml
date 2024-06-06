@@ -1,3 +1,5 @@
+version: '3'
+
 services:
   streamlit:
     build:
@@ -5,5 +7,5 @@ services:
       context: ./
     ports:
       - "8501:8501"
-    # volumes: 
-    #   - ./:/app
+    volumes:
+      - ./:/app
