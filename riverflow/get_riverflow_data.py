@@ -1,5 +1,6 @@
 """
-    Author - Steven Mugisha Mizero
+This module scrapes riverflow data from - https://www.wapda.gov.pk/river-flow
+Author - Steven Mugisha Mizero < mmirsteven@gmail.com >
 """
 
 from selenium import webdriver
@@ -11,6 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import datetime
 from time import sleep
+import traceback
 import os
 import logging
 import pandas as pd
@@ -20,7 +22,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
-THRESHOLD_DAYS = 60
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
     """
-    reads the data from the website and returns a dataframe.
+    Scrapes the table return a pandas dataframe with selected columns.
     """
 
     chrome_options = Options()
@@ -89,8 +90,6 @@ def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
 
         except Exception as e:
             logger.error(f"Error while scrapping from the web: {e}")
-            import traceback
-
             traceback.print_exc()
 
     return main_scrapped_df
@@ -120,149 +119,154 @@ def create_main_scrapped_table() -> pd.DataFrame:
     return output_table
 
 
-def update_riverflow_data(url: str, THRESHOLD_DAYS):
+def update_riverflow_data(url: str):
     """
     This function returns the data for the current year and the previous year.
     """
-    # the years to be used:
-    current_year = datetime.now().year
-    previous_year = current_year - 1
+    try:
+        # the years to be used:
+        current_year = datetime.now().year
+        previous_year = current_year - 1
 
-    # to check which days missing from the dataframe:
-    today = datetime.now()
-    start_date = datetime(today.year, 1, 1)
-    delta = today - start_date
-    logger.info(f"The number of days since 1st of January: {delta.days}")
+        # to check which days missing from the dataframe:
+        today = datetime.now()
+        start_date = datetime(today.year, 1, 1)
+        delta = today - start_date
+        logger.info(f"The number of days since 1st of January: {delta.days}")
 
-    # loading RIVERFLOW_FILE:
-    prod_riverflow_dataset = pd.read_csv(RIVERFLOW_FILE, index_col="Date")
-    prod_riverflow_dataset.index = pd.to_datetime(
-        prod_riverflow_dataset.index, format="%Y-%m-%d"
-    )
-
-    # check if we need to start from the previous year:
-    if (
-        str(prod_riverflow_dataset.index[-1].year) == str(previous_year)
-        and str(prod_riverflow_dataset.index[-1]).split()[0] != f"{previous_year}-12-30"
-    ):
-        logger.info(
-            f"Last date in the dataframe { str(prod_riverflow_dataset.index[-1]).split()[0]}"
-        )
-        logger.info("The previous year riveflow needs to be scrapped and filled.")
-        previous_year_df = scrape_riverflow_table(url, previous_year)
-        previous_year_df.index = pd.to_datetime(previous_year_df.index)
-        previous_year_df = previous_year_df[
-            previous_year_df.index > prod_riverflow_dataset.index[-1]
-        ]
-
-        prod_riverflow_dataset = pd.concat(
-            [prod_riverflow_dataset, previous_year_df], axis=0
+        # loading RIVERFLOW_FILE:
+        prod_riverflow_dataset = pd.read_csv(RIVERFLOW_FILE, index_col="Date")
+        prod_riverflow_dataset.index = pd.to_datetime(
+            prod_riverflow_dataset.index, format="%Y-%m-%d"
         )
 
-    # if current_year:
-    #     current_year_table = scrape_riverflow_table(url, current_year)
+        # check if we need to start from the previous year:
+        if (
+            str(prod_riverflow_dataset.index[-1].year) == str(previous_year)
+            and str(prod_riverflow_dataset.index[-1]).split()[0]
+            != f"{previous_year}-12-30"
+        ):
+            logger.info(
+                f"Last date in the dataframe { str(prod_riverflow_dataset.index[-1]).split()[0]}"
+            )
+            logger.info("The previous year riveflow needs to be scrapped and filled.")
 
-    #     # if  (len(current_year_table) > threshold_days) & (len(current_year_table) == delta.days):
-    #     if len(current_year_table) > threshold_days:
-    #         current_year_table = select_columns(
-    #             current_year_table, current_year
-    #         )
-    #         # select the last index in the old and new dataframes:
-    #         last_date_new_data = current_year_table.index[-1]
-    #         last_date = prod_riverflow_dataset.index[-1]
+            # scrape the previous year data:
+            previous_year_df = scrape_riverflow_table(url, previous_year)
+            previous_year_df.index = pd.to_datetime(previous_year_df.index)
+            previous_year_df = previous_year_df[
+                previous_year_df.index > prod_riverflow_dataset.index[-1]
+            ]
 
-    #         if last_date != last_date_new_data:
-    #             before_threshold_day = pd.to_datetime(last_date) - pd.Timedelta(
-    #                 days=threshold_days
-    #             )
-    #             before_threshold_day = before_threshold_day.strftime("%Y-%m-%d")
-    #             prod_riverflow_dataset = prod_riverflow_dataset[
-    #                 prod_riverflow_dataset.index < before_threshold_day
-    #             ]
-    #             data_to_append = current_year_table[
-    #                 current_year_table.index > before_threshold_day
-    #             ]
-    #             data_to_append = data_to_append.applymap(str_to_int) * 1000
-    #             data_to_append.index = pd.to_datetime(data_to_append.index)
-    #             data_to_append["Year"] = data_to_append.index.year
-    #             data_to_append.index = pd.to_datetime(data_to_append.index).strftime(
-    #                 "%Y-%m-%d"
-    #             )
+            # scrape the current year data:
+            current_year_df = scrape_riverflow_table(url, current_year)
+            current_year_df.index = pd.to_datetime(current_year_df.index)
+            current_year_df = current_year_df[
+                current_year_df.index > prod_riverflow_dataset.index[-1]
+            ]
 
-    #             prod_riverflow_dataset = pd.concat(
-    #                 [prod_riverflow_dataset, data_to_append], axis=0
-    #             )
-    #             logger.info(" ------------ Dataframes updated. ------------ ")
+            prod_riverflow_dataset = pd.concat(
+                [prod_riverflow_dataset, previous_year_df, current_year_df], axis=0
+            )
 
-    #             # saving the data to csv:
-    #             prod_riverflow_dataset.to_csv("riverflow.csv")
-    #             logger.info(" ------------ Data saved to csv. ------------ ")
+            return prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
 
-    #         # else:
-    #         #     logger.info("Table data is not equal to the number of days since 1st of January")
+        current_scraped_table = scrape_riverflow_table(url, current_year)
+        current_scraped_table.index = pd.to_datetime(current_scraped_table.index)
 
-    #     elif len((current_year_table) < threshold_days):
-    #         logger.info(
-    #             "Data available is less than the threshold days but equal to the number of days since 1st of January"
-    #         )
-    #         logger.info(f" The current year table length is: {len(current_year_table)}")
-    #         logger.info("Get the previous year data to fill the gap")
+        THRESHOLD_DAYS = 60
+        threshold_date = pd.to_datetime(today) - pd.Timedelta(days=THRESHOLD_DAYS)
+        threshold_date = threshold_date.strftime("%Y-%m-%d")
 
-    #         previous_year_table = scrape_riverflow_table(url, previous_year)
-    #         previous_year_table = select_columns(
-    #             previous_year_table, previous_year
-    #         )
-    #         last_date_new_data = previous_year_table.index[-1]
-    #         logger.info(
-    #             f" ------------------ Last date of new data is held here: {last_date_new_data} ------------- "
-    #         )
+        if len(current_scraped_table) == delta.days:
+            if len(current_scraped_table) >= THRESHOLD_DAYS:
+                logger.info(
+                    f"The current year table length {len(current_scraped_table)} is equal to the number of days {delta.days} since 1st of January."
+                )
 
-    #         days_to_get_from_previous_year = threshold_days - len(current_year_table)
+                current_scraped_table = current_scraped_table[
+                    current_scraped_table.index > threshold_date
+                ]
+                prod_riverflow_dataset = prod_riverflow_dataset[
+                    prod_riverflow_dataset.index < threshold_date
+                ]
+                prod_riverflow_dataset = pd.concat(
+                    [prod_riverflow_dataset, current_scraped_table], axis=0
+                )
 
-    #         # get the last rows of the previous year table equal to the days_to_get_from_previous_year:
-    #         logger.info("Reading the last year table to match the threshold days")
-    #         previous_year_table = previous_year_table.tail(
-    #             days_to_get_from_previous_year
-    #         )
+                return prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
 
-    #         # concat the two dataframes:
-    #         combined_table = pd.concat(
-    #             [previous_year_table, current_year_table], axis=0
-    #         )
+            elif len(current_scraped_table) < THRESHOLD_DAYS:
 
-    #         last_date = prod_riverflow_dataset.index[-1]
+                days_to_get_from_previous_year = THRESHOLD_DAYS - len(
+                    current_scraped_table
+                )
 
-    #         # Then get the last rows of the combined table equal to the threshold days:
-    #         before_threshold_day = pd.to_datetime(last_date) - pd.Timedelta(
-    #             days=threshold_days
-    #         )
-    #         before_threshold_day = before_threshold_day.strftime("%Y-%m-%d")
-    #         prod_riverflow_dataset = prod_riverflow_dataset[
-    #             prod_riverflow_dataset.index < before_threshold_day
-    #         ]
-    #         data_to_append = combined_table[combined_table.index > before_threshold_day]
-    #         data_to_append = data_to_append.applymap(str_to_int) * 1000
-    #         data_to_append.index = pd.to_datetime(data_to_append.index)
-    #         data_to_append["Year"] = data_to_append.index.year
-    #         data_to_append.index = pd.to_datetime(data_to_append.index).strftime(
-    #             "%Y-%m-%d"
-    #         )
-    #         prod_riverflow_dataset = pd.concat(
-    #             [prod_riverflow_dataset, data_to_append], axis=0
-    #         )
-    #         prod_riverflow_dataset["Year"] = prod_riverflow_dataset.index.year
-    #         logger.info(" ------------ Dataframes updated. ------------ ")
+                logger.info(
+                    f"Days to get from the previous year: {days_to_get_from_previous_year}"
+                )
 
-    #         # saving the data to csv:
-    #         prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
-    #         logger.info(" ------------ Data saved to csv. ------------ ")
-    #     else:
-    #         logger.info("No data at all")
+                try:
+                    last_year_date = f"{previous_year}-12-30"
+                    start_date_from_previous_year = pd.to_datetime(
+                        last_year_date
+                    ) - pd.Timedelta(days=days_to_get_from_previous_year)
 
-    # else:
-    #     logger.info(" ------------ Current year not found. ----------- ")
+                    previous_year_df = scrape_riverflow_table(url, previous_year)
+                    previous_year_df.index = pd.to_datetime(previous_year_df.index)
 
-    # return current_year_table
+                    if previous_year_df.index[-1] == last_year_date:
+                        logger.info(
+                            "The last date of the previous year data is equal to the last date of the previous year."
+                        )
+
+                        previous_year_df = previous_year_df[
+                            previous_year_df.index > start_date_from_previous_year
+                        ]
+
+                        prod_riverflow_dataset = prod_riverflow_dataset[
+                            prod_riverflow_dataset.index < threshold_date
+                        ]
+                        prod_riverflow_dataset = pd.concat(
+                            [
+                                prod_riverflow_dataset,
+                                previous_year_df,
+                                current_scraped_table,
+                            ],
+                            axis=0,
+                        )
+
+                        return prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+
+                    else:
+                        logger.info(
+                            f"The last date of the previous year data is {previous_year_df.index[-1]} not equal to {last_year_date}"
+                        )
+                        logger.info("The threshold days will not be applied.")
+
+                        last_date_prod_riverflow_data = prod_riverflow_dataset.index[-1]
+                        current_scraped_table = current_scraped_table[
+                            current_scraped_table.index > last_date_prod_riverflow_data
+                        ]
+
+                        prod_riverflow_dataset = pd.concat(
+                            [prod_riverflow_dataset, current_scraped_table], axis=0
+                        )
+
+                except Exception as e:
+                    logger.error(
+                        f"Error scrapping {THRESHOLD_DAYS - len(current_scraped_table)} number of days from {previous_year} year: {e}"
+                    )
+                    traceback.print_exc()
+
+        # elif: // Todo: if the prod_riverflow_dataset doesn't have update date get the difference from the current_scraped_table.
+        # logs of how many days added.
+        else:
+            logger.info("unable to scrape the data.")
+
+    except Exception as e:
+        logger.error(f"Error while updating the riverflow data: {e}")
+        traceback.print_exc()
 
 
 def str_to_int(value):
@@ -312,4 +316,4 @@ def select_columns(main_scrapped_table: pd.DataFrame, year: int) -> pd.DataFrame
 
 if __name__ == "__main__":
     url = "https://www.wapda.gov.pk/river-flow"
-    update_riverflow_data(url, THRESHOLD_DAYS)
+    update_riverflow_data(url)
