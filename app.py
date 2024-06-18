@@ -19,8 +19,9 @@ app_ui = ui.page_fluid(
                 ui.div(
                     ui.div(
                         "Select Station:",
-                        class_="d-inline-block mr-2",
-                        style="font-weight: bold;",
+                        class_="d-inline-block",
+                        style="font-weight: bold; margin-right: 5px; margin-left: 5px; margin-bottom: 15px;",
+
                     ),
                     ui.input_select(
                         id="stations",
@@ -32,14 +33,14 @@ app_ui = ui.page_fluid(
                             "cheanab_at_marala (cfs)": "CHEANAB_AT_MARALA",
                         },
                     ),
-                    class_="d-flex",
-                    # style="width: 300px;",
+                    class_="d-flex align-items-center",
+                    style="width: 250px;"
                 ),
                 ui.div(
                     ui.div(
                         "Select Year:",
-                        class_="d-inline-block mr-2",
-                        style="font-weight: bold;",
+                        class_="d-inline-block",
+                        style="font-weight: bold; margin-right: 5px; margin-left: 5px; margin-bottom: 15px",
                     ),
                     ui.input_select(
                         id="years",
@@ -57,9 +58,11 @@ app_ui = ui.page_fluid(
                             2014,
                         ],
                     ),
-                    class_="d-flex mt-3",
+                    class_="d-flex align-items-center",
+                    style="width: 150px; margin-left: 20px; margin-right: 20px;"
+
                 ),
-                class_="d-flex flex-column",
+                class_="d-flex flex-row ",
             ),
             full_screen=False,
             class_="mt-3",
