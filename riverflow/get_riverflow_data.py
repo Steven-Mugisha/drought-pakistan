@@ -10,16 +10,15 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
 from datetime import datetime
 from time import sleep
 import traceback
-import os
 import logging
 import pandas as pd
 
-
+import os
 from dotenv import load_dotenv
-
 load_dotenv()
 RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
 

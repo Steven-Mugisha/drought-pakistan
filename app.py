@@ -1,8 +1,19 @@
 import faicons as fa
 import plotly.express as px
-
 from shiny import App, reactive, render, ui
 from shinywidgets import output_widget, render_plotly
+import pandas as pd
+import os
+from  riverflow.flow_percentiles import percentiles
+
+from dotenv import load_dotenv
+load_dotenv()
+RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
+
+from shiny import App, ui, render, reactive
+import pandas as pd
+import plotly.graph_objs as go
+import calendar
 
 app_ui = ui.page_fluid(
     ui.div(
@@ -21,7 +32,6 @@ app_ui = ui.page_fluid(
                         "Select Station:",
                         class_="d-inline-block",
                         style="font-weight: bold; margin-right: 5px; margin-left: 5px; margin-bottom: 15px;",
-
                     ),
                     ui.input_select(
                         id="stations",
@@ -60,18 +70,137 @@ app_ui = ui.page_fluid(
                     ),
                     class_="d-flex align-items-center",
                     style="width: 150px; margin-left: 20px; margin-right: 20px;"
-
                 ),
                 class_="d-flex flex-row ",
             ),
+            ui.div(
+                ui.div(
+                    output_widget("riverflow_percentages"),
+                    class_="d-flex justify-content-center",
+                    style="width: 1000%;"
+                    # style="width: 500%;",
+                ),
+                class_="d-flex justify-content-center mt-4 mb-5",
+                style="overflow-x: auto; overflow-y: hidden; white-space: nowrap; width: 100%;",
+            ),
             full_screen=False,
-            class_="mt-3",
+            class_="mt-3 custom-class card-body bg-light border border-dark rounded shadow-lg p-3 mb-5 bg-white rounded",
+    
         ),
         class_="container mt-5",
-        style="max-width: 1000px;",
-    )
+        style="max-width: 1200px;",
+    ),
+    ui.include_css("./styles.css"),
 )
 
-# def server(input, output, session):
+def selected_station_df(station: str, selected_year: int) -> pd.DataFrame:
+    """Load the station dataset and selects the station and year of interest."""
+    station_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
+    station_df = station_df[station_df[station].notna()]
+    year_subset_df = station_df[station_df["Year"] == selected_year]
+    year_subset_df = year_subset_df.set_index(pd.Index(range(1, len(year_subset_df) + 1)))
+    return year_subset_df
 
-app = App(app_ui, server=None)
+def server(input, ouput, session):
+    @render_plotly
+    def riverflow_percentages():
+        selected_station = input.stations.get()
+        selected_year = input.years.get()
+
+        riverflow_df = selected_station_df(selected_station, selected_year)
+        plot_df = percentiles(selected_station)
+        plot_df = plot_df.set_index(pd.Index(range(1, 366)))
+
+
+        plot_df = percentiles(selected_station)
+        plot_df = plot_df.set_index(pd.Index(range(1, 366)))
+
+        traces = []
+        fill_colors = [
+            "brown",
+            "saddlebrown",
+            "moccasin",
+            "lawngreen",
+            "paleturquoise",
+            "blue",
+        ]
+
+        for j, col in enumerate(plot_df.columns):
+            fill = "tonexty" if j > 0 else "none"
+            fillcolor = fill_colors[j] if j < len(fill_colors) else None
+            linecolor = "red" if j == 0 else fillcolor
+            traces.append(
+                go.Scatter(
+                    x=plot_df.index,
+                    y=plot_df.iloc[:, j],
+                    name=col,
+                    fill=fill,
+                    fillcolor=fillcolor,
+                    line=dict(color=linecolor),
+                )
+            )
+
+        months = [calendar.month_abbr[i] for i in range(1, 13)]
+        x_tickvals = [i for i in range(1, 13)]
+
+        layout = go.Layout(
+            width=600,
+            height=650,
+            title={
+                "text": f"{selected_station} Flow Percentiles (cfs)",
+                "x": 0.5,
+                "y": 1,
+                "xanchor": "center",
+                "yanchor": "top",
+                "font": {"size": 20, "color": "black"},
+            },
+            xaxis=dict(
+                title="Days of the Year",
+                titlefont=dict(size=25, color="black"),
+                tickmode="array",
+                showticklabels=True,
+                showgrid=False,
+                showline=True,
+                linewidth=1,
+                linecolor="black",
+                mirror=True,
+                tickfont=dict(color="black", size=20),
+            ),
+            yaxis=dict(
+                title="Daily discharge (CFS)",
+                tickmode="array",
+                tickformat=".0f",
+                tickvals=[
+                    plot_df.iloc[:, 0].min(),
+                    1000,
+                    10000,
+                    100000,
+                    plot_df.iloc[:, -1].max(),
+                ],
+                type="log",
+                tick0=plot_df.iloc[:, 0].min(),
+                dtick=(plot_df.iloc[:, -1].max() - plot_df.iloc[:, 0].min()) / 10,
+                showgrid=False,
+                titlefont=dict(size=25, color="black"),
+                showline=True,
+                linewidth=1,
+                linecolor="black",
+                mirror=True,
+                tickfont=dict(color="black", size=20),
+            ),
+            margin=dict(l=40, r=40, t=40, b=40),
+            showlegend=True,
+        )
+        Line_trace = go.Scatter(
+            x=riverflow_df.index,
+            y=riverflow_df.iloc[:, 1],
+            line=dict(color="black", width=5),
+            name="Selected Year",
+        )
+        traces.append(Line_trace)
+        
+        fig = go.Figure(data=traces, layout=layout)
+
+        return fig
+    
+app = App(app_ui, server)
