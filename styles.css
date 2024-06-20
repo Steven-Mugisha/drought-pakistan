@@ -1,1 +1,23 @@
+#stations {
+    font-size: 11px;
+    height: 30px;
+    width: 110%;
+}
 
+#stations option {
+    font-size: 12px;
+}
+
+#years {
+    font-size: 11px;
+    height: 30px;
+    width: 120%;
+}
+
+/* #years option {
+    font-size: 11px;
+} */
+
+/* .d-flex.align-items-center {
+    width: 250px;
+} */

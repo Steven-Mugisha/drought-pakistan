@@ -22,7 +22,7 @@ app_ui = ui.page_fluid(
                 ui.div(
                     "RiverFlow hydrographs of main rivers in Pakistan",
                     class_="mx-auto font-weight-bold text-center",
-                    style="font-size: 1.5rem;",
+                    style="font-size: 1.3rem;",
                 ),
                 class_="d-flex justify-content-between align-items-center",
             ),
@@ -31,7 +31,9 @@ app_ui = ui.page_fluid(
                     ui.div(
                         "Select Station:",
                         class_="d-inline-block",
-                        style="font-weight: bold; margin-right: 5px; margin-left: 5px; margin-bottom: 15px;",
+                        # style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px;",
+                        style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px; white-space: nowrap;",
+
                     ),
                     ui.input_select(
                         id="stations",
@@ -42,15 +44,17 @@ app_ui = ui.page_fluid(
                             "jhelum_at_mangal (cfs)": "JHELUM_AT_MANGAL",
                             "cheanab_at_marala (cfs)": "CHEANAB_AT_MARALA",
                         },
+
                     ),
                     class_="d-flex align-items-center",
-                    style="width: 250px;"
+                    style="width: 250px; font-size: 1px"
                 ),
                 ui.div(
                     ui.div(
                         "Select Year:",
                         class_="d-inline-block",
-                        style="font-weight: bold; margin-right: 5px; margin-left: 5px; margin-bottom: 15px",
+                        style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px; white-space: nowrap;",
+
                     ),
                     ui.input_select(
                         id="years",
@@ -71,24 +75,22 @@ app_ui = ui.page_fluid(
                     class_="d-flex align-items-center",
                     style="width: 150px; margin-left: 20px; margin-right: 20px;"
                 ),
-                class_="d-flex flex-row ",
+                class_="d-flex flex-row justify-content-center align-items-center mt-3", 
             ),
             ui.div(
                 ui.div(
                     output_widget("riverflow_percentages"),
                     class_="d-flex justify-content-center",
-                    style="width: 1000%;"
-                    # style="width: 500%;",
+                    style="width: 1000px; height: 600px;"
                 ),
                 class_="d-flex justify-content-center mt-4 mb-5",
                 style="overflow-x: auto; overflow-y: hidden; white-space: nowrap; width: 100%;",
             ),
-            full_screen=False,
-            class_="mt-3 custom-class card-body bg-light border border-dark rounded shadow-lg p-3 mb-5 bg-white rounded",
-    
+            full_screen=True,
+            class_="mt-3 custom-class card-body bg-light border border-darkgrey p-2 mb-5 bg-white rounded",
         ),
-        class_="container mt-5",
-        style="max-width: 1200px;",
+        class_="container mt-5 mb-20",
+        style="width: 1000px; ",
     ),
     ui.include_css("./styles.css"),
 )
@@ -143,20 +145,22 @@ def server(input, ouput, session):
         months = [calendar.month_abbr[i] for i in range(1, 13)]
         x_tickvals = [i for i in range(1, 13)]
 
+        selected_station = selected_station.replace("_", " ").upper().split(" (")[0]
+
         layout = go.Layout(
-            width=600,
-            height=650,
+            width=900,
+            height=600,
             title={
                 "text": f"{selected_station} Flow Percentiles (cfs)",
                 "x": 0.5,
                 "y": 1,
                 "xanchor": "center",
                 "yanchor": "top",
-                "font": {"size": 20, "color": "black"},
+                "font": {"size": 15, "color": "black"},
             },
             xaxis=dict(
                 title="Days of the Year",
-                titlefont=dict(size=25, color="black"),
+                titlefont=dict(size=15, color="black"),
                 tickmode="array",
                 showticklabels=True,
                 showgrid=False,
@@ -164,7 +168,7 @@ def server(input, ouput, session):
                 linewidth=1,
                 linecolor="black",
                 mirror=True,
-                tickfont=dict(color="black", size=20),
+                tickfont=dict(color="black", size=15),
             ),
             yaxis=dict(
                 title="Daily discharge (CFS)",
@@ -181,12 +185,12 @@ def server(input, ouput, session):
                 tick0=plot_df.iloc[:, 0].min(),
                 dtick=(plot_df.iloc[:, -1].max() - plot_df.iloc[:, 0].min()) / 10,
                 showgrid=False,
-                titlefont=dict(size=25, color="black"),
+                titlefont=dict(size=15, color="black"),
                 showline=True,
                 linewidth=1,
                 linecolor="black",
                 mirror=True,
-                tickfont=dict(color="black", size=20),
+                tickfont=dict(color="black", size=15),
             ),
             margin=dict(l=40, r=40, t=40, b=40),
             showlegend=True,
