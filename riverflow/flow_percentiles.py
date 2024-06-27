@@ -5,10 +5,9 @@ import math
 from dotenv import load_dotenv
 import os
 
-# the path to the folder:
+from dotenv import load_dotenv
 load_dotenv()
-path = os.getenv("path")
-
+RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
 
 def fit_model(flow_data: pd.Series, doy, window=None) -> pd.DataFrame:
     if window is not None:
@@ -38,10 +37,7 @@ def percentiles(station_name: str) -> pd.DataFrame:
         columns=["min", "10%", "25%", "75%", "90%", "max"]
     )
 
-    # load data
-    directory = f"{path}/riverflow.csv"
-    # directory = f"riverflow.csv"
-    stations_flow_df = pd.read_csv(directory, index_col=0, parse_dates=True)
+    stations_flow_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
     station_serie = stations_flow_df[station_name]
 
     # Collect data and calculate percentiles
@@ -64,6 +60,5 @@ def percentiles(station_name: str) -> pd.DataFrame:
 
 
 # test this:
-
 # if __name__ == "__main__":
 #     percentiles("kabul_at_nowshera (cfs)")

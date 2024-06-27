@@ -1,94 +1,114 @@
-import streamlit as st
-import pandas as pd
+# import faicons as fa
 import plotly.graph_objs as go
-from flow_percentiles import percentiles
-import logging
-import calendar
-from dotenv import load_dotenv
+from shiny import App, reactive, render, ui
+from shinywidgets import output_widget, render_plotly
+import pandas as pd
 import os
-import json
+from  riverflow.flow_percentiles import percentiles
 
-# the path to the folder:
+from dotenv import load_dotenv
 load_dotenv()
-path = os.getenv("path")
+RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+app_ui = ui.page_fluid(
+    ui.div(
+        ui.card(
+            ui.card_header(
+                ui.div(
+                    "RiverFlow Hydrographs of Main Rivers in Pakistan",
+                    class_="mx-auto font-weight-bold text-center",
+                    style="font-size: 1.3rem;",
+                ),
+                class_="d-flex justify-content-between align-items-center",
+            ),
+            ui.div(
+                ui.div(
+                    ui.div(
+                        "Select Station:",
+                        class_="d-inline-block",
+                        style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px; white-space: nowrap;",
 
-st.set_page_config(layout="wide")
+                    ),
+                    ui.input_select(
+                        id="stations",
+                        label=None,
+                        choices={
+                            "indus_at_tarbela (cfs)": "INDUS_AT_TARBELA",
+                            "kabul_at_nowshera (cfs)": "KABUL_AT_NOWSHERA",
+                            "jhelum_at_mangal (cfs)": "JHELUM_AT_MANGAL",
+                            "cheanab_at_marala (cfs)": "CHEANAB_AT_MARALA",
+                        },
 
+                    ),
+                    class_="d-flex align-items-center",
+                    style="width: 250px; font-size: 1px"
+                ),
+                ui.div(
+                    ui.div(
+                        "Select Year:",
+                        class_="d-inline-block",
+                        style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px; white-space: nowrap;",
 
-@st.cache(allow_output_mutation=True)
-def health_check():
-    return {"status": "ok"}
-
-
-# Define a new route for the health check path
-def check_health():
-    health_status = health_check()
-    return json.dumps(health_status)
-
-
-# # Use Streamlit's st.button to trigger the health check
-# if st.button("Check Health"):
-#    health_status = check_health()
-#    st.write("Health Check Status:", health_status)
-
-st.markdown(
-    "<h1 style='font-size:40px; text-align: center;'>RiverFlow hydrographs of main rivers in Pakistan</h1>",
-    unsafe_allow_html=True,
+                    ),
+                    ui.input_select(
+                        id="Years",
+                        label=None,
+                        choices=[
+                            2024,
+                            2023,
+                            2022,
+                            2021,
+                            2020,
+                            2019,
+                            2018,
+                            2017,
+                            2016,
+                            2015
+                        ],
+                    ),
+                    class_="d-flex align-items-center",
+                    style="width: 170px; margin-left: 20px; margin-right: 20px;",
+                ),
+                class_="d-flex flex-row justify-content-center align-items-center mt-3", 
+            ),
+            ui.div(
+                ui.div(
+                    output_widget("riverflow_percentages"),
+                    class_="d-flex justify-content-center",
+                    style="width: 1000px; height: 600px;"
+                ),
+                class_="d-flex justify-content-center mt-4 mb-5",
+                style="overflow-x: auto; overflow-y: hidden; white-space: nowrap; width: 100%;",
+            ),
+            full_screen=True,
+            class_="mt-3 custom-class card-body bg-light border border-darkgrey p-2 mb-5 bg-white rounded",
+        ),
+        class_="container mt-5 mb-20",
+        style="width: 1000px; ",
+    ),
+    ui.include_css("./styles.css"),
 )
 
-st.markdown("<br><br>", unsafe_allow_html=True)
-
-col1, col2 = st.columns([2, 0.4])
-
-# Varaibles for selection:
-name_rivers = [
-    "indus_at_tarbela (cfs)",
-    "kabul_at_nowshera (cfs)",
-    "jhelum_at_mangal (cfs)",
-    "cheanab_at_marala (cfs)",
-]
-recent_years = [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014]
-
-with col2:
-    selected_station = st.selectbox(
-        "Select Station", name_rivers, index=name_rivers.index(name_rivers[0])
-    )
-
-with col2:
-    selected_year = st.selectbox(
-        "Select Year", recent_years, index=recent_years.index(recent_years[0])
-    )
-
-
-def selected_station_df(station: str) -> pd.DataFrame:
-    """Load the station data set from the directory and selects the year of interest"""
-
-    # directory = f"{path}/riverflow.csv"
-    directory = "riverflow.csv"
-    station_df = pd.read_csv(directory, index_col=0, parse_dates=True)
-    station_df = station_df[station_df[station].notna()]
-    year_subset_df = station_df[station_df["Year"] == selected_year]
-    year_subset_df = year_subset_df.set_index(
-        pd.Index(range(1, len(year_subset_df) + 1))
-    )
-
-    return year_subset_df
-
-
-if selected_year != "Select Year":
-    riverflow_df = selected_station_df(selected_station)
-
-with col1:
+def selected_station_df(station: str, selected_year: str) -> pd.DataFrame:
+    """Load the station dataset and select the station and year of interest."""
     try:
+        station_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
+        station_df  = station_df[[station, 'Year']]
+        year_subset_df = station_df[station_df['Year'] == int(selected_year)]
+        year_subset_df = year_subset_df.set_index(pd.Index(range(1, len(year_subset_df) + 1)))
+        return year_subset_df
+    except Exception as e:
+        print(f"Error: {e}")
+        return pd.DataFrame()
+
+def server(input, ouput, session):
+    @render_plotly
+    def riverflow_percentages():
+
+        selected_station = input.stations.get()
         plot_df = percentiles(selected_station)
-        # set the index from 1 to 365
         plot_df = plot_df.set_index(pd.Index(range(1, 366)))
 
-        # Create the traces
         traces = []
         fill_colors = [
             "brown",
@@ -113,26 +133,22 @@ with col1:
                     line=dict(color=linecolor),
                 )
             )
-        # Set the layout
-        # x-axis as months:
-        months = [calendar.month_abbr[i] for i in range(1, 13)]
-        x_tickvals = [i for i in range(1, 13)]
 
         layout = go.Layout(
-            width=600,
-            height=650,
-            # title=f'{selected_station} Flow Percentiles (cfs)',
+            width=900,
+            height=600,
             title={
-                "text": f"{selected_station} Flow Percentiles (cfs)",
+                "text": f"{selected_station.replace("_", " ").upper().split(" (")[0]} Flow Percentiles (cfs)",
                 "x": 0.5,
                 "y": 1,
                 "xanchor": "center",
                 "yanchor": "top",
-                "font": {"size": 20, "color": "black"},
+                "font": {"size": 15, "color": "black"},
             },
+            plot_bgcolor="whitesmoke",
             xaxis=dict(
                 title="Days of the Year",
-                titlefont=dict(size=25, color="black"),
+                titlefont=dict(size=15, color="black"),
                 tickmode="array",
                 showticklabels=True,
                 showgrid=False,
@@ -140,10 +156,10 @@ with col1:
                 linewidth=1,
                 linecolor="black",
                 mirror=True,
-                tickfont=dict(color="black", size=20),
+                tickfont=dict(color="black", size=15),
             ),
             yaxis=dict(
-                title="Daily discharge (CFS)",
+                title="Daily Discharge (CFS)",
                 tickmode="array",
                 tickformat=".0f",
                 tickvals=[
@@ -157,32 +173,30 @@ with col1:
                 tick0=plot_df.iloc[:, 0].min(),
                 dtick=(plot_df.iloc[:, -1].max() - plot_df.iloc[:, 0].min()) / 10,
                 showgrid=False,
-                titlefont=dict(size=25, color="black"),
+                titlefont=dict(size=15, color="black"),
                 showline=True,
                 linewidth=1,
                 linecolor="black",
                 mirror=True,
-                tickfont=dict(color="black", size=20),
+                tickfont=dict(color="black", size=15),
             ),
             margin=dict(l=40, r=40, t=40, b=40),
             showlegend=True,
         )
-        # Create the trace for the new line plot
+
+        # current state of riverflow
+        selected_year = input.Years.get()
+        riverflow_df = selected_station_df(selected_station, selected_year)
         Line_trace = go.Scatter(
             x=riverflow_df.index,
-            y=riverflow_df.iloc[:, 1],
+            y=riverflow_df[selected_station],
             line=dict(color="black", width=5),
-            name="Selected Year",
+            name=selected_year,
         )
         traces.append(Line_trace)
-
-        # Create the figure object
+        
         fig = go.Figure(data=traces, layout=layout)
 
-        # st.plotly_chart(fig)
-        container = st.container()
-        with container:
-            st.plotly_chart(fig, use_container_width=True)
-
-    except ValueError as e:
-        st.error(str(e))
+        return fig
+    
+app = App(app_ui, server)

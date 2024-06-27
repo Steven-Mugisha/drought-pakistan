@@ -20,3 +20,4 @@ __pycache__/
 *.csv
 riverflow_db/
 riverflow/archive_code.py
+streamlitapp.py
