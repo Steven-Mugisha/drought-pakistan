@@ -14,10 +14,6 @@
     width: 120%;
 }
 
-/* #years option {
-    font-size: 11px;
-} */
-
-/* .d-flex.align-items-center {
-    width: 250px;
-} */
+#years option {
+    font-size: 12px;
+}

@@ -1,5 +1,5 @@
-import faicons as fa
-import plotly.express as px
+# import faicons as fa
+import plotly.graph_objs as go
 from shiny import App, reactive, render, ui
 from shinywidgets import output_widget, render_plotly
 import pandas as pd
@@ -10,17 +10,12 @@ from dotenv import load_dotenv
 load_dotenv()
 RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
 
-from shiny import App, ui, render, reactive
-import pandas as pd
-import plotly.graph_objs as go
-import calendar
-
 app_ui = ui.page_fluid(
     ui.div(
         ui.card(
             ui.card_header(
                 ui.div(
-                    "RiverFlow hydrographs of main rivers in Pakistan",
+                    "RiverFlow Hydrographs of Main Rivers in Pakistan",
                     class_="mx-auto font-weight-bold text-center",
                     style="font-size: 1.3rem;",
                 ),
@@ -31,7 +26,6 @@ app_ui = ui.page_fluid(
                     ui.div(
                         "Select Station:",
                         class_="d-inline-block",
-                        # style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px;",
                         style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px; white-space: nowrap;",
 
                     ),
@@ -57,9 +51,10 @@ app_ui = ui.page_fluid(
 
                     ),
                     ui.input_select(
-                        id="years",
+                        id="Years",
                         label=None,
                         choices=[
+                            2024,
                             2023,
                             2022,
                             2021,
@@ -68,12 +63,11 @@ app_ui = ui.page_fluid(
                             2018,
                             2017,
                             2016,
-                            2015,
-                            2014,
+                            2015
                         ],
                     ),
                     class_="d-flex align-items-center",
-                    style="width: 150px; margin-left: 20px; margin-right: 20px;"
+                    style="width: 170px; margin-left: 20px; margin-right: 20px;",
                 ),
                 class_="d-flex flex-row justify-content-center align-items-center mt-3", 
             ),
@@ -95,25 +89,23 @@ app_ui = ui.page_fluid(
     ui.include_css("./styles.css"),
 )
 
-def selected_station_df(station: str, selected_year: int) -> pd.DataFrame:
-    """Load the station dataset and selects the station and year of interest."""
-    station_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
-    station_df = station_df[station_df[station].notna()]
-    year_subset_df = station_df[station_df["Year"] == selected_year]
-    year_subset_df = year_subset_df.set_index(pd.Index(range(1, len(year_subset_df) + 1)))
-    return year_subset_df
+def selected_station_df(station: str, selected_year: str) -> pd.DataFrame:
+    """Load the station dataset and select the station and year of interest."""
+    try:
+        station_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
+        station_df  = station_df[[station, 'Year']]
+        year_subset_df = station_df[station_df['Year'] == int(selected_year)]
+        year_subset_df = year_subset_df.set_index(pd.Index(range(1, len(year_subset_df) + 1)))
+        return year_subset_df
+    except Exception as e:
+        print(f"Error: {e}")
+        return pd.DataFrame()
 
 def server(input, ouput, session):
     @render_plotly
     def riverflow_percentages():
+
         selected_station = input.stations.get()
-        selected_year = input.years.get()
-
-        riverflow_df = selected_station_df(selected_station, selected_year)
-        plot_df = percentiles(selected_station)
-        plot_df = plot_df.set_index(pd.Index(range(1, 366)))
-
-
         plot_df = percentiles(selected_station)
         plot_df = plot_df.set_index(pd.Index(range(1, 366)))
 
@@ -142,22 +134,18 @@ def server(input, ouput, session):
                 )
             )
 
-        months = [calendar.month_abbr[i] for i in range(1, 13)]
-        x_tickvals = [i for i in range(1, 13)]
-
-        selected_station = selected_station.replace("_", " ").upper().split(" (")[0]
-
         layout = go.Layout(
             width=900,
             height=600,
             title={
-                "text": f"{selected_station} Flow Percentiles (cfs)",
+                "text": f"{selected_station.replace("_", " ").upper().split(" (")[0]} Flow Percentiles (cfs)",
                 "x": 0.5,
                 "y": 1,
                 "xanchor": "center",
                 "yanchor": "top",
                 "font": {"size": 15, "color": "black"},
             },
+            plot_bgcolor="whitesmoke",
             xaxis=dict(
                 title="Days of the Year",
                 titlefont=dict(size=15, color="black"),
@@ -171,7 +159,7 @@ def server(input, ouput, session):
                 tickfont=dict(color="black", size=15),
             ),
             yaxis=dict(
-                title="Daily discharge (CFS)",
+                title="Daily Discharge (CFS)",
                 tickmode="array",
                 tickformat=".0f",
                 tickvals=[
@@ -195,11 +183,15 @@ def server(input, ouput, session):
             margin=dict(l=40, r=40, t=40, b=40),
             showlegend=True,
         )
+
+        # current state of riverflow
+        selected_year = input.Years.get()
+        riverflow_df = selected_station_df(selected_station, selected_year)
         Line_trace = go.Scatter(
             x=riverflow_df.index,
-            y=riverflow_df.iloc[:, 1],
+            y=riverflow_df[selected_station],
             line=dict(color="black", width=5),
-            name="Selected Year",
+            name=selected_year,
         )
         traces.append(Line_trace)
         
