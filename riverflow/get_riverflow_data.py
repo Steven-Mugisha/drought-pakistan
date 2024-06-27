@@ -314,5 +314,5 @@ def select_columns(main_scrapped_table: pd.DataFrame, year: int) -> pd.DataFrame
 
 
 if __name__ == "__main__":
-    url = "https://www.wapda.gov.pk/river-flow"
-    update_riverflow_data(url)
+    URL = "https://www.wapda.gov.pk/river-flow"
+    update_riverflow_data(URL)

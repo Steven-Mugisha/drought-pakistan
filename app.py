@@ -138,9 +138,9 @@ def server(input, ouput, session):
             width=900,
             height=600,
             title={
-                "text": f"{selected_station.replace("_", " ").upper().split(" (")[0]} Flow Percentiles (cfs)",
+                "text" : f"{selected_station.replace(' ', '_').upper().split('_(')[0]} Flow Percentiles (cfs)",
                 "x": 0.5,
-                "y": 1,
+                "y": .99,
                 "xanchor": "center",
                 "yanchor": "top",
                 "font": {"size": 15, "color": "black"},
