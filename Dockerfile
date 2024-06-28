@@ -5,9 +5,7 @@ WORKDIR /app
 COPY requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
 
-# VOLUME ["/app"]
-
 COPY . .
 
-EXPOSE 8000
+EXPOSE 8501
 CMD [ "shiny", "run", "app.py" ]
