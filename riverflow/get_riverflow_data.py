@@ -3,22 +3,22 @@ This module scrapes riverflow data from - https://www.wapda.gov.pk/river-flow
 Author - Steven Mugisha Mizero < mmirsteven@gmail.com >
 """
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
+import logging
+import os
+import traceback
 from datetime import datetime
 from time import sleep
-import traceback
-import logging
-import pandas as pd
 
-import os
+import pandas as pd
 from dotenv import load_dotenv
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
+
 load_dotenv()
 RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
 
@@ -177,7 +177,7 @@ def update_riverflow_data(url: str):
         threshold_date = pd.to_datetime(today) - pd.Timedelta(days=THRESHOLD_DAYS)
         threshold_date = threshold_date.strftime("%Y-%m-%d")
 
-        if len(current_scraped_table) == delta.days:
+        if len(current_scraped_table):
             if len(current_scraped_table) >= THRESHOLD_DAYS:
                 logger.info(
                     f"The current year table length {len(current_scraped_table)} is equal to the number of days {delta.days} since 1st of January."
@@ -237,32 +237,27 @@ def update_riverflow_data(url: str):
 
                         return prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
 
-                    else:
-                        logger.info(
-                            f"The last date of the previous year data is {previous_year_df.index[-1]} not equal to {last_year_date}"
-                        )
-                        logger.info("The threshold days will not be applied.")
+                    # else:
+                    #     # Todo: if the last date of the previous year data is not equal to the last date of the previous year.
+                    #     logger.info(
+                    #         f"The last date of the previous year data is {previous_year_df.index[-1]} not equal to {last_year_date}"
+                    #     )
+                    #     logger.info("The threshold days will not be applied.")
 
-                        last_date_prod_riverflow_data = prod_riverflow_dataset.index[-1]
-                        current_scraped_table = current_scraped_table[
-                            current_scraped_table.index > last_date_prod_riverflow_data
-                        ]
+                    #     last_date_prod_riverflow_data = prod_riverflow_dataset.index[-1]
+                    #     current_scraped_table = current_scraped_table[
+                    #         current_scraped_table.index > last_date_prod_riverflow_data
+                    #     ]
 
-                        prod_riverflow_dataset = pd.concat(
-                            [prod_riverflow_dataset, current_scraped_table], axis=0
-                        )
+                    #     prod_riverflow_dataset = pd.concat(
+                    #         [prod_riverflow_dataset, current_scraped_table], axis=0
+                    #     )
 
                 except Exception as e:
                     logger.error(
                         f"Error scrapping {THRESHOLD_DAYS - len(current_scraped_table)} number of days from {previous_year} year: {e}"
                     )
                     traceback.print_exc()
-
-        # elif: // Todo: if the prod_riverflow_dataset doesn't have update date get the difference from the current_scraped_table.
-        # logs of how many days added.
-        else:
-            logger.info("unable to scrape the data.")
-
     except Exception as e:
         logger.error(f"Error while updating the riverflow data: {e}")
         traceback.print_exc()

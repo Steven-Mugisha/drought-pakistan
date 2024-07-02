@@ -1,13 +1,14 @@
-import pandas as pd
-from scipy.stats import weibull_min, genextreme
-import numpy as np
 import math
-from dotenv import load_dotenv
 import os
 
+import numpy as np
+import pandas as pd
 from dotenv import load_dotenv
+from scipy.stats import genextreme, weibull_min
+
 load_dotenv()
 RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
+
 
 def fit_model(flow_data: pd.Series, doy, window=None) -> pd.DataFrame:
     if window is not None:
