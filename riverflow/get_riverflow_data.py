@@ -24,8 +24,6 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
-logger.info(f"Environment variable 'riverflow_db_dir': {RIVERFLOW_FILE}")
-
 
 def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
     """
@@ -34,8 +32,15 @@ def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
 
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    chromedriver_path = ChromeDriverManager().install()
+    os.chmod(chromedriver_path, 0o755)
+
     with webdriver.Chrome(
-        options=chrome_options, service=ChromeService(ChromeDriverManager().install())
+        options=chrome_options, service=ChromeService(chromedriver_path)
     ) as driver:
         try:
             driver.get(url)
@@ -331,7 +336,6 @@ def select_columns(main_scrapped_table: pd.DataFrame, year: int) -> pd.DataFrame
 
     return riverflow_data.sort_index(ascending=True)
 
-
-if __name__ == "__main__":
-    URL = "https://www.wapda.gov.pk/river-flow"
-    update_riverflow_data(URL)
+# if __name__ == "__main__":
+#     URL = "https://www.wapda.gov.pk/river-flow"
+#     update_riverflow_data(URL)
