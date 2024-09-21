@@ -1,11 +1,9 @@
-version: '3'
+version: '3.8'
 
 services:
-  streamlit:
-    build:
-      dockerfile: ./Dockerfile
-      context: ./
+  shiny_app:
+    build: .
     ports:
       - "8501:8501"
     volumes:
-      - ./:/app
+      - ./riverflow_db:/app/riverflow_db

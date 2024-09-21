@@ -3,28 +3,27 @@ This module scrapes riverflow data from - https://www.wapda.gov.pk/river-flow
 Author - Steven Mugisha Mizero < mmirsteven@gmail.com >
 """
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
+import logging
+import os
+import traceback
 from datetime import datetime
 from time import sleep
-import traceback
-import logging
-import pandas as pd
 
-import os
+import pandas as pd
 from dotenv import load_dotenv
-load_dotenv()
-RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+load_dotenv()
+RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
 
 def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
     """
@@ -33,8 +32,15 @@ def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
 
     chrome_options = Options()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
+    chromedriver_path = ChromeDriverManager().install()
+    os.chmod(chromedriver_path, 0o755)
+
     with webdriver.Chrome(
-        options=chrome_options, service=ChromeService(ChromeDriverManager().install())
+        options=chrome_options, service=ChromeService(chromedriver_path)
     ) as driver:
         try:
             driver.get(url)
@@ -81,11 +87,13 @@ def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
                 main_scrapped_df.loc[len(main_scrapped_df)] = row
 
             main_scrapped_df = select_columns(main_scrapped_df, year)
-            main_scrapped_df = main_scrapped_df.applymap(str_to_int) * 1000
+            main_scrapped_df = (
+                main_scrapped_df.apply(lambda x: x.apply(str_to_int)) * 1000
+            )
             main_scrapped_df.index = pd.to_datetime(main_scrapped_df.index)
             main_scrapped_df["Year"] = main_scrapped_df.index.year
 
-            logger.info(f" The length of the table {len(main_scrapped_df)}")
+            logger.info(f" The length of the scraped table {len(main_scrapped_df)}")
 
         except Exception as e:
             logger.error(f"Error while scrapping from the web: {e}")
@@ -148,7 +156,9 @@ def update_riverflow_data(url: str):
             logger.info(
                 f"Last date in the dataframe { str(prod_riverflow_dataset.index[-1]).split()[0]}"
             )
-            logger.info("The previous year riveflow needs to be scrapped and filled.")
+            logger.info(
+                "The previous year riveflow table needs to be scrapped and filled."
+            )
 
             # scrape the previous year data:
             previous_year_df = scrape_riverflow_table(url, previous_year)
@@ -168,7 +178,12 @@ def update_riverflow_data(url: str):
                 [prod_riverflow_dataset, previous_year_df, current_year_df], axis=0
             )
 
-            return prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+            try:
+                prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                logger.info("Successfully saved the updated riverflow data.")
+            except Exception as e:
+                logger.error(f"Failed to save the updated riverflow data: {e}")
+                traceback.print_exc()
 
         current_scraped_table = scrape_riverflow_table(url, current_year)
         current_scraped_table.index = pd.to_datetime(current_scraped_table.index)
@@ -177,10 +192,10 @@ def update_riverflow_data(url: str):
         threshold_date = pd.to_datetime(today) - pd.Timedelta(days=THRESHOLD_DAYS)
         threshold_date = threshold_date.strftime("%Y-%m-%d")
 
-        if len(current_scraped_table) == delta.days:
+        if len(current_scraped_table):
             if len(current_scraped_table) >= THRESHOLD_DAYS:
                 logger.info(
-                    f"The current year table length {len(current_scraped_table)} is equal to the number of days {delta.days} since 1st of January."
+                    f"The current year scraped table length: {len(current_scraped_table)} while the number of days since 1st of January: {delta.days} ."
                 )
 
                 current_scraped_table = current_scraped_table[
@@ -193,7 +208,12 @@ def update_riverflow_data(url: str):
                     [prod_riverflow_dataset, current_scraped_table], axis=0
                 )
 
-                return prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                try:
+                    prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                    logger.info("Successfully saved the updated riverflow data.")
+                except Exception as e:
+                    logger.error(f"Failed to save the updated riverflow data: {e}")
+                    traceback.print_exc()
 
             elif len(current_scraped_table) < THRESHOLD_DAYS:
 
@@ -235,34 +255,38 @@ def update_riverflow_data(url: str):
                             axis=0,
                         )
 
-                        return prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                        try:
+                            prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                            logger.info(
+                                "Successfully saved the updated riverflow data."
+                            )
+                        except Exception as e:
+                            logger.error(
+                                f"Failed to save the updated riverflow data: {e}"
+                            )
+                            traceback.print_exc()
 
-                    else:
-                        logger.info(
-                            f"The last date of the previous year data is {previous_year_df.index[-1]} not equal to {last_year_date}"
-                        )
-                        logger.info("The threshold days will not be applied.")
+                    # else:
+                    #     # Todo: if the last date of the previous year data is not equal to the last date of the previous year.
+                    #     logger.info(
+                    #         f"The last date of the previous year data is {previous_year_df.index[-1]} not equal to {last_year_date}"
+                    #     )
+                    #     logger.info("The threshold days will not be applied.")
 
-                        last_date_prod_riverflow_data = prod_riverflow_dataset.index[-1]
-                        current_scraped_table = current_scraped_table[
-                            current_scraped_table.index > last_date_prod_riverflow_data
-                        ]
+                    #     last_date_prod_riverflow_data = prod_riverflow_dataset.index[-1]
+                    #     current_scraped_table = current_scraped_table[
+                    #         current_scraped_table.index > last_date_prod_riverflow_data
+                    #     ]
 
-                        prod_riverflow_dataset = pd.concat(
-                            [prod_riverflow_dataset, current_scraped_table], axis=0
-                        )
+                    #     prod_riverflow_dataset = pd.concat(
+                    #         [prod_riverflow_dataset, current_scraped_table], axis=0
+                    #     )
 
                 except Exception as e:
                     logger.error(
                         f"Error scrapping {THRESHOLD_DAYS - len(current_scraped_table)} number of days from {previous_year} year: {e}"
                     )
                     traceback.print_exc()
-
-        # elif: // Todo: if the prod_riverflow_dataset doesn't have update date get the difference from the current_scraped_table.
-        # logs of how many days added.
-        else:
-            logger.info("unable to scrape the data.")
-
     except Exception as e:
         logger.error(f"Error while updating the riverflow data: {e}")
         traceback.print_exc()
@@ -312,7 +336,6 @@ def select_columns(main_scrapped_table: pd.DataFrame, year: int) -> pd.DataFrame
 
     return riverflow_data.sort_index(ascending=True)
 
-
-if __name__ == "__main__":
-    url = "https://www.wapda.gov.pk/river-flow"
-    update_riverflow_data(url)
+# if __name__ == "__main__":
+#     URL = "https://www.wapda.gov.pk/river-flow"
+#     update_riverflow_data(URL)

@@ -1,12 +1,14 @@
 # import faicons as fa
+import os
+
+import pandas as pd
 import plotly.graph_objs as go
+from dotenv import load_dotenv
 from shiny import App, reactive, render, ui
 from shinywidgets import output_widget, render_plotly
-import pandas as pd
-import os
-from  riverflow.flow_percentiles import percentiles
 
-from dotenv import load_dotenv
+from riverflow.flow_percentiles import percentiles
+
 load_dotenv()
 RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
 
@@ -27,7 +29,6 @@ app_ui = ui.page_fluid(
                         "Select Station:",
                         class_="d-inline-block",
                         style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px; white-space: nowrap;",
-
                     ),
                     ui.input_select(
                         id="stations",
@@ -38,17 +39,15 @@ app_ui = ui.page_fluid(
                             "jhelum_at_mangal (cfs)": "JHELUM_AT_MANGAL",
                             "cheanab_at_marala (cfs)": "CHEANAB_AT_MARALA",
                         },
-
                     ),
                     class_="d-flex align-items-center",
-                    style="width: 250px; font-size: 1px"
+                    style="width: 250px; font-size: 1px",
                 ),
                 ui.div(
                     ui.div(
                         "Select Year:",
                         class_="d-inline-block",
                         style="font-weight: bold; font-size: 13px; margin-right: 5px; margin-left: 5px; margin-bottom: 15px; white-space: nowrap;",
-
                     ),
                     ui.input_select(
                         id="Years",
@@ -63,19 +62,19 @@ app_ui = ui.page_fluid(
                             2018,
                             2017,
                             2016,
-                            2015
+                            2015,
                         ],
                     ),
                     class_="d-flex align-items-center",
                     style="width: 170px; margin-left: 20px; margin-right: 20px;",
                 ),
-                class_="d-flex flex-row justify-content-center align-items-center mt-3", 
+                class_="d-flex flex-row justify-content-center align-items-center mt-3",
             ),
             ui.div(
                 ui.div(
                     output_widget("riverflow_percentages"),
                     class_="d-flex justify-content-center",
-                    style="width: 1000px; height: 600px;"
+                    style="width: 1000px; height: 600px;",
                 ),
                 class_="d-flex justify-content-center mt-4 mb-5",
                 style="overflow-x: auto; overflow-y: hidden; white-space: nowrap; width: 100%;",
@@ -89,17 +88,21 @@ app_ui = ui.page_fluid(
     ui.include_css("./styles.css"),
 )
 
+
 def selected_station_df(station: str, selected_year: str) -> pd.DataFrame:
     """Load the station dataset and select the station and year of interest."""
     try:
         station_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
-        station_df  = station_df[[station, 'Year']]
-        year_subset_df = station_df[station_df['Year'] == int(selected_year)]
-        year_subset_df = year_subset_df.set_index(pd.Index(range(1, len(year_subset_df) + 1)))
+        station_df = station_df[[station, "Year"]]
+        year_subset_df = station_df[station_df["Year"] == int(selected_year)]
+        year_subset_df = year_subset_df.set_index(
+            pd.Index(range(1, len(year_subset_df) + 1))
+        )
         return year_subset_df
     except Exception as e:
         print(f"Error: {e}")
         return pd.DataFrame()
+
 
 def server(input, ouput, session):
     @render_plotly
@@ -138,9 +141,9 @@ def server(input, ouput, session):
             width=900,
             height=600,
             title={
-                "text": f"{selected_station.replace("_", " ").upper().split(" (")[0]} Flow Percentiles (cfs)",
+                "text": f"{selected_station.replace(' ', '_').upper().split('_(')[0]} Flow Percentiles (cfs)",
                 "x": 0.5,
-                "y": 1,
+                "y": 0.99,
                 "xanchor": "center",
                 "yanchor": "top",
                 "font": {"size": 15, "color": "black"},
@@ -194,9 +197,10 @@ def server(input, ouput, session):
             name=selected_year,
         )
         traces.append(Line_trace)
-        
+
         fig = go.Figure(data=traces, layout=layout)
 
         return fig
-    
+
+
 app = App(app_ui, server)
