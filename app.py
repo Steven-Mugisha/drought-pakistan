@@ -1,5 +1,6 @@
 # import faicons as fa
 import os
+import sys
 
 import pandas as pd
 import plotly.graph_objs as go
@@ -9,8 +10,11 @@ from shinywidgets import output_widget, render_plotly
 
 from riverflow.flow_percentiles import percentiles
 
-load_dotenv()
-RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
+# load_dotenv()
+# RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utils.az_utils import blob_client_helper, download_blob_helper
 
 app_ui = ui.page_fluid(
     ui.div(
@@ -92,7 +96,10 @@ app_ui = ui.page_fluid(
 def selected_station_df(station: str, selected_year: str) -> pd.DataFrame:
     """Load the station dataset and select the station and year of interest."""
     try:
-        station_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
+        # station_df = pd.read_csv(RIVERFLOW_FILE, index_col=0, parse_dates=True)
+        blob_client = blob_client_helper()
+        existing_data = download_blob_helper(blob_client)
+        station_df = pd.read_csv(existing_data, index_col=0, parse_dates=True)
         station_df = station_df[[station, "Year"]]
         year_subset_df = station_df[station_df["Year"] == int(selected_year)]
         year_subset_df = year_subset_df.set_index(
@@ -201,6 +208,5 @@ def server(input, ouput, session):
         fig = go.Figure(data=traces, layout=layout)
 
         return fig
-
 
 app = App(app_ui, server)

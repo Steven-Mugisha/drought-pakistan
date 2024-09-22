@@ -6,13 +6,11 @@ Author - Steven Mugisha Mizero < mmirsteven@gmail.com >
 import logging
 import os
 import sys
-
 import traceback
 from datetime import datetime
 from time import sleep
-import pandas as pd
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import pandas as pd
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -22,13 +20,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.az_utils import blob_client_helper, download_blob_helper, upload_blob_helper
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
+
 load_dotenv()
+
 
 def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
     """
@@ -343,6 +344,7 @@ def select_columns(main_scrapped_table: pd.DataFrame, year: int) -> pd.DataFrame
     riverflow_data.index = pd.to_datetime(riverflow_data.index).strftime("%Y-%m-%d")
 
     return riverflow_data.sort_index(ascending=True)
+
 
 # if __name__ == "__main__":
 #     URL = "https://www.wapda.gov.pk/river-flow"
