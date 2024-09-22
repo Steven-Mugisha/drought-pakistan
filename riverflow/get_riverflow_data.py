@@ -5,12 +5,15 @@ Author - Steven Mugisha Mizero < mmirsteven@gmail.com >
 
 import logging
 import os
+import sys
 import traceback
 from datetime import datetime
 from time import sleep
 
 import pandas as pd
-from dotenv import load_dotenv
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -19,11 +22,15 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
+from utils.az_utils import blob_client_helper, download_blob_helper, upload_blob_helper
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+from dotenv import load_dotenv
+
 load_dotenv()
-RIVERFLOW_FILE = os.getenv("riverflow_db_dir")
+
 
 def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
     """
@@ -141,8 +148,11 @@ def update_riverflow_data(url: str):
         delta = today - start_date
         logger.info(f"The number of days since 1st of January: {delta.days}")
 
-        # loading RIVERFLOW_FILE:
-        prod_riverflow_dataset = pd.read_csv(RIVERFLOW_FILE, index_col="Date")
+        # Download the existing blob content:
+        blob_client = blob_client_helper()
+        existing_data = download_blob_helper(blob_client)
+
+        prod_riverflow_dataset = pd.read_csv(existing_data, index_col="Date")
         prod_riverflow_dataset.index = pd.to_datetime(
             prod_riverflow_dataset.index, format="%Y-%m-%d"
         )
@@ -179,7 +189,8 @@ def update_riverflow_data(url: str):
             )
 
             try:
-                prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                # prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                upload_blob_helper(prod_riverflow_dataset, blob_client)
                 logger.info("Successfully saved the updated riverflow data.")
             except Exception as e:
                 logger.error(f"Failed to save the updated riverflow data: {e}")
@@ -209,7 +220,9 @@ def update_riverflow_data(url: str):
                 )
 
                 try:
-                    prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                    # prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                    upload_blob_helper(prod_riverflow_dataset, blob_client)
+
                     logger.info("Successfully saved the updated riverflow data.")
                 except Exception as e:
                     logger.error(f"Failed to save the updated riverflow data: {e}")
@@ -256,7 +269,8 @@ def update_riverflow_data(url: str):
                         )
 
                         try:
-                            prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                            # prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
+                            upload_blob_helper(prod_riverflow_dataset, blob_client)
                             logger.info(
                                 "Successfully saved the updated riverflow data."
                             )
