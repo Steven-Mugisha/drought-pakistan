@@ -2,8 +2,8 @@ import os
 from io import StringIO
 
 from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 load_dotenv()
 
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
