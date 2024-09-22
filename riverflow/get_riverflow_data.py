@@ -6,10 +6,10 @@ Author - Steven Mugisha Mizero < mmirsteven@gmail.com >
 import logging
 import os
 import sys
+
 import traceback
 from datetime import datetime
 from time import sleep
-
 import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -28,9 +28,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 from dotenv import load_dotenv
-
 load_dotenv()
-
 
 def scrape_riverflow_table(url: str, year: str) -> pd.DataFrame:
     """
@@ -189,7 +187,6 @@ def update_riverflow_data(url: str):
             )
 
             try:
-                # prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
                 upload_blob_helper(prod_riverflow_dataset, blob_client)
                 logger.info("Successfully saved the updated riverflow data.")
             except Exception as e:
@@ -220,9 +217,7 @@ def update_riverflow_data(url: str):
                 )
 
                 try:
-                    # prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
                     upload_blob_helper(prod_riverflow_dataset, blob_client)
-
                     logger.info("Successfully saved the updated riverflow data.")
                 except Exception as e:
                     logger.error(f"Failed to save the updated riverflow data: {e}")
@@ -269,7 +264,6 @@ def update_riverflow_data(url: str):
                         )
 
                         try:
-                            # prod_riverflow_dataset.to_csv(RIVERFLOW_FILE)
                             upload_blob_helper(prod_riverflow_dataset, blob_client)
                             logger.info(
                                 "Successfully saved the updated riverflow data."
